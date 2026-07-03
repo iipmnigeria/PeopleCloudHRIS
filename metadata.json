@@ -1,0 +1,6 @@
+{
+  "name": "PeopleCloud HRIS",
+  "description": "A comprehensive multi-tenant cloud-based HRIS SaaS platform for small and medium organizations to manage employee records, recruitment, onboarding, attendance, leave, payroll, performance, and HR requests.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

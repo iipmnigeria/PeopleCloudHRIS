@@ -1,0 +1,47 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper to check if database is empty / not seeded yet
+    function isNotSeeded() {
+      return !exists(/databases/$(database)/documents/companies/acme-corp);
+    }
+
+    // Helper to check if user is SuperAdmin
+    function isSuperAdmin() {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'SuperAdmin';
+    }
+
+    // Helper to check if user belongs to the given company
+    function belongsToCompany(companyId) {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId == companyId || 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'SuperAdmin');
+    }
+
+    // User profiles rules
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if (isAuthenticated() && (request.auth.uid == userId || isSuperAdmin())) || isNotSeeded();
+    }
+
+    // Companies rules
+    match /companies/{companyId} {
+      allow read: if isAuthenticated() || isNotSeeded();
+      allow write: if (isAuthenticated() && (belongsToCompany(companyId) || isSuperAdmin())) || isNotSeeded();
+
+      // Nested subcollections rules (employees, departments, attendance, leave_requests, etc.)
+      match /{document=**} {
+        allow read, write: if (isAuthenticated() && belongsToCompany(companyId)) || isNotSeeded();
+      }
+    }
+  }
+}

@@ -1,0 +1,340 @@
+{
+  "entities": {
+    "company": {
+      "title": "Company",
+      "description": "Multi-tenant tenant company configuration in the SaaS platform.",
+      "type": "object",
+      "properties": {
+        "companyId": { "type": "string", "description": "Unique identifier of the company." },
+        "name": { "type": "string", "description": "Official company name." },
+        "logoUrl": { "type": "string", "description": "URL to the company logo." },
+        "industry": { "type": "string", "description": "Company industry classification." },
+        "employeeCount": { "type": "number", "description": "Estimated or active number of employees." },
+        "subscriptionPlan": { "type": "string", "enum": ["Starter", "Growth", "Professional", "Enterprise"], "description": "Selected billing tier." },
+        "subscriptionStatus": { "type": "string", "enum": ["Trialing", "Active", "Past_Due", "Canceled"], "description": "Current status of SaaS subscription." },
+        "billingEmail": { "type": "string", "description": "Primary email for billing notifications." },
+        "renewalDate": { "type": "string", "format": "date-time", "description": "Next scheduled subscription renewal date." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp when company registered." }
+      },
+      "required": ["companyId", "name", "subscriptionPlan", "subscriptionStatus", "createdAt"]
+    },
+    "user": {
+      "title": "User",
+      "description": "Authentication-linked user record, defining identity, multi-tenant link, and RBAC.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID." },
+        "email": { "type": "string", "description": "User email address." },
+        "displayName": { "type": "string", "description": "User full name." },
+        "companyId": { "type": "string", "description": "Tenant association. Null for platform super admins." },
+        "role": { "type": "string", "enum": ["SuperAdmin", "CompanyAdmin", "HRManager", "LineManager", "Employee", "FinanceOfficer", "Recruiter", "Auditor"], "description": "RBAC Role assignment." },
+        "active": { "type": "boolean", "description": "Status flag to grant or suspend workspace access." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Registration timestamp." }
+      },
+      "required": ["uid", "email", "companyId", "role", "active", "createdAt"]
+    },
+    "employee": {
+      "title": "Employee Profile",
+      "description": "Exhaustive details of an employee, isolating personal, employment, and banking info.",
+      "type": "object",
+      "properties": {
+        "employeeId": { "type": "string", "description": "Unique employee identification." },
+        "userId": { "type": "string", "description": "Associated user account UID, if they have login credentials." },
+        "companyId": { "type": "string", "description": "Tenant company association." },
+        "firstName": { "type": "string", "description": "First name." },
+        "lastName": { "type": "string", "description": "Last name." },
+        "email": { "type": "string", "description": "Professional or personal email." },
+        "phone": { "type": "string", "description": "Contact phone number." },
+        "dateOfBirth": { "type": "string", "format": "date", "description": "Date of birth." },
+        "gender": { "type": "string", "description": "Gender identity." },
+        "address": { "type": "string", "description": "Residential address." },
+        "jobTitle": { "type": "string", "description": "Designation." },
+        "departmentId": { "type": "string", "description": "Associated department ID." },
+        "gradeLevel": { "type": "string", "description": "Pay or hierarchy tier." },
+        "employmentType": { "type": "string", "enum": ["Full-Time", "Part-Time", "Contract", "Intern"], "description": "Nature of engagement." },
+        "supervisorId": { "type": "string", "description": "Supervisor's employeeId." },
+        "dateOfEmployment": { "type": "string", "format": "date", "description": "Start date." },
+        "status": { "type": "string", "enum": ["Active", "Onboarding", "On_Leave", "Suspended", "Terminated"], "description": "Current status." },
+        "baseSalary": { "type": "number", "description": "Monthly base salary." },
+        "bankName": { "type": "string", "description": "Name of primary bank." },
+        "accountNumber": { "type": "string", "description": "Bank account number." },
+        "taxId": { "type": "string", "description": "Tax Identification Number." },
+        "nextOfKin": { "type": "string", "description": "Emergency contact next of kin name." },
+        "emergencyPhone": { "type": "string", "description": "Emergency contact number." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp." }
+      },
+      "required": ["employeeId", "companyId", "firstName", "lastName", "jobTitle", "departmentId", "employmentType", "status", "baseSalary", "createdAt"]
+    },
+    "department": {
+      "title": "Department",
+      "description": "Organizational department structure definition.",
+      "type": "object",
+      "properties": {
+        "departmentId": { "type": "string", "description": "Unique identifier." },
+        "companyId": { "type": "string", "description": "Tenant company association." },
+        "name": { "type": "string", "description": "Department name (e.g., Engineering, HR)." },
+        "headId": { "type": "string", "description": "Employee ID of department head." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp." }
+      },
+      "required": ["departmentId", "companyId", "name", "createdAt"]
+    },
+    "attendance": {
+      "title": "Attendance record",
+      "description": "Daily check-in and timesheet log.",
+      "type": "object",
+      "properties": {
+        "attendanceId": { "type": "string", "description": "Unique record id." },
+        "companyId": { "type": "string", "description": "Tenant company association." },
+        "employeeId": { "type": "string", "description": "Associated employee profile." },
+        "date": { "type": "string", "format": "date", "description": "Work date." },
+        "clockIn": { "type": "string", "description": "Clock-in ISO timestamp." },
+        "clockOut": { "type": "string", "description": "Clock-out ISO timestamp." },
+        "status": { "type": "string", "enum": ["OnTime", "Late", "Absent"], "description": "Daily status." },
+        "timesheetHours": { "type": "number", "description": "Calculated hours worked." },
+        "approvedBy": { "type": "string", "description": "Supervisor's user UID or employeeId who approved timesheet." },
+        "approvedAt": { "type": "string", "format": "date-time", "description": "Approval timestamp." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Log creation timestamp." }
+      },
+      "required": ["attendanceId", "companyId", "employeeId", "date", "clockIn", "status", "createdAt"]
+    },
+    "leave_request": {
+      "title": "Leave Request",
+      "description": "Time-off and vacation request.",
+      "type": "object",
+      "properties": {
+        "leaveRequestId": { "type": "string", "description": "Unique ID." },
+        "companyId": { "type": "string", "description": "Tenant company association." },
+        "employeeId": { "type": "string", "description": "Requesting employee's ID." },
+        "leaveType": { "type": "string", "enum": ["Annual", "Sick", "Maternity", "Paternity", "Casual", "Unpaid"], "description": "Leave categorization." },
+        "startDate": { "type": "string", "format": "date", "description": "Starting date." },
+        "endDate": { "type": "string", "format": "date", "description": "Ending date." },
+        "totalDays": { "type": "number", "description": "Calculated working days requested." },
+        "status": { "type": "string", "enum": ["Pending", "Approved", "Rejected"], "description": "Current status." },
+        "comment": { "type": "string", "description": "Employee comment or reason." },
+        "approvedBy": { "type": "string", "description": "Approving manager user ID." },
+        "approvedAt": { "type": "string", "format": "date-time", "description": "Date of status change." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Submission date." }
+      },
+      "required": ["leaveRequestId", "companyId", "employeeId", "leaveType", "startDate", "endDate", "totalDays", "status", "createdAt"]
+    },
+    "payroll_record": {
+      "title": "Payroll Record",
+      "description": "Core payroll run definition for a given period.",
+      "type": "object",
+      "properties": {
+        "payrollId": { "type": "string", "description": "Unique ID." },
+        "companyId": { "type": "string", "description": "Tenant company association." },
+        "period": { "type": "string", "description": "Billing month (e.g., '2026-06')." },
+        "totalGross": { "type": "number", "description": "Sum of all base salaries + allowances." },
+        "totalDeductions": { "type": "number", "description": "Sum of all deductions." },
+        "totalNet": { "type": "number", "description": "Sum of net payouts." },
+        "status": { "type": "string", "enum": ["Draft", "Approved", "Paid"], "description": "Payroll run state." },
+        "approvedBy": { "type": "string", "description": "User UID who approved." },
+        "approvedAt": { "type": "string", "format": "date-time", "description": "Approval timestamp." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Compilation timestamp." }
+      },
+      "required": ["payrollId", "companyId", "period", "totalGross", "totalDeductions", "totalNet", "status", "createdAt"]
+    },
+    "payslip": {
+      "title": "Payslip",
+      "description": "Individual breakdown of payslips for an employee in a payroll period.",
+      "type": "object",
+      "properties": {
+        "payslipId": { "type": "string", "description": "Unique ID." },
+        "payrollId": { "type": "string", "description": "Link to active payroll record." },
+        "companyId": { "type": "string", "description": "Tenant company association." },
+        "employeeId": { "type": "string", "description": "Target employee." },
+        "period": { "type": "string", "description": "Billing month (e.g., '2026-06')." },
+        "baseSalary": { "type": "number", "description": "Base pay." },
+        "allowances": { "type": "number", "description": "Total bonus and allowance pay." },
+        "deductions": { "type": "number", "description": "Tax/pension and loan deductions." },
+        "netSalary": { "type": "number", "description": "Net payable amount." },
+        "status": { "type": "string", "enum": ["Draft", "Issued"], "description": "Status." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp." }
+      },
+      "required": ["payslipId", "payrollId", "companyId", "employeeId", "period", "baseSalary", "allowances", "deductions", "netSalary", "status", "createdAt"]
+    },
+    "job": {
+      "title": "Recruitment Job",
+      "description": "Job opening listing for applicant tracking.",
+      "type": "object",
+      "properties": {
+        "jobId": { "type": "string", "description": "Unique ID." },
+        "companyId": { "type": "string", "description": "Tenant company association." },
+        "title": { "type": "string", "description": "Job title." },
+        "departmentId": { "type": "string", "description": "Target department." },
+        "description": { "type": "string", "description": "Detailed description." },
+        "requirements": { "type": "string", "description": "Competency requirements." },
+        "salaryRange": { "type": "string", "description": "Optional budget indicator." },
+        "status": { "type": "string", "enum": ["Draft", "Published", "Closed"], "description": "Job state." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Publish timestamp." }
+      },
+      "required": ["jobId", "companyId", "title", "departmentId", "status", "createdAt"]
+    },
+    "candidate": {
+      "title": "Job Candidate",
+      "description": "Applicant track record.",
+      "type": "object",
+      "properties": {
+        "candidateId": { "type": "string", "description": "Unique ID." },
+        "jobId": { "type": "string", "description": "Associated job opening." },
+        "companyId": { "type": "string", "description": "Tenant company association." },
+        "name": { "type": "string", "description": "Candidate full name." },
+        "email": { "type": "string", "description": "Candidate email." },
+        "phone": { "type": "string", "description": "Candidate phone." },
+        "cvUrl": { "type": "string", "description": "URL link to CV file." },
+        "stage": { "type": "string", "enum": ["Applied", "Screening", "Interviewing", "Offered", "Hired", "Rejected"], "description": "Workflow stage." },
+        "score": { "type": "number", "description": "Average interview scoring." },
+        "feedback": { "type": "string", "description": "Interview feedback." },
+        "convertedToEmployee": { "type": "boolean", "description": "Whether profile converted to employee record." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Applied timestamp." }
+      },
+      "required": ["candidateId", "jobId", "companyId", "name", "email", "stage", "createdAt"]
+    },
+    "onboarding_task": {
+      "title": "Onboarding Task",
+      "description": "A single tasks in the new hire onboarding workflow.",
+      "type": "object",
+      "properties": {
+        "taskId": { "type": "string", "description": "Unique task ID." },
+        "companyId": { "type": "string", "description": "Tenant company association." },
+        "employeeId": { "type": "string", "description": "New hire employee ID." },
+        "title": { "type": "string", "description": "Task name." },
+        "category": { "type": "string", "description": "Category (e.g., Orientation, Document, IT, Health)." },
+        "status": { "type": "string", "enum": ["Pending", "Completed"], "description": "Status." },
+        "assignedTo": { "type": "string", "description": "Person responsible to verify." },
+        "completedAt": { "type": "string", "format": "date-time", "description": "Timestamp when task completed." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp." }
+      },
+      "required": ["taskId", "companyId", "employeeId", "title", "category", "status", "createdAt"]
+    },
+    "hr_request": {
+      "title": "HR Request Ticket",
+      "description": "Employee service and helpdesk support ticket.",
+      "type": "object",
+      "properties": {
+        "requestId": { "type": "string", "description": "Unique ticket ID." },
+        "companyId": { "type": "string", "description": "Tenant company association." },
+        "employeeId": { "type": "string", "description": "Submitting employee profile." },
+        "type": { "type": "string", "enum": ["EmploymentLetter", "SalaryConfirmation", "LeaveEnquiry", "Complaint", "DocUpdate", "General"], "description": "Ticket nature." },
+        "title": { "type": "string", "description": "Short subject description." },
+        "description": { "type": "string", "description": "Exhaustive details." },
+        "status": { "type": "string", "enum": ["Open", "InProgress", "Resolved", "Closed"], "description": "Ticket state." },
+        "assigneeId": { "type": "string", "description": "Assigned HR officer user ID." },
+        "resolution": { "type": "string", "description": "Closing notes." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp." }
+      },
+      "required": ["requestId", "companyId", "employeeId", "type", "title", "description", "status", "createdAt"]
+    },
+    "document": {
+      "title": "Document Reference",
+      "description": "Secure file attachment link with access control settings.",
+      "type": "object",
+      "properties": {
+        "documentId": { "type": "string", "description": "Unique file record ID." },
+        "companyId": { "type": "string", "description": "Tenant company association." },
+        "employeeId": { "type": "string", "description": "Linked employee profile (null for global policies)." },
+        "category": { "type": "string", "enum": ["Contract", "Policy", "OfferLetter", "Appraisal", "TrainingCertificate", "Payslip", "Template"], "description": "Document folder categorization." },
+        "name": { "type": "string", "description": "User friendly file label." },
+        "fileUrl": { "type": "string", "description": "Secure file storage URL (from storage/simulation)." },
+        "accessLevel": { "type": "string", "enum": ["AdminOnly", "ManagerAndAbove", "EmployeeSelf"], "description": "Permissions restriction." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Upload timestamp." }
+      },
+      "required": ["documentId", "companyId", "category", "name", "fileUrl", "accessLevel", "createdAt"]
+    },
+    "notification": {
+      "title": "Notification",
+      "description": "SaaS communication record for users.",
+      "type": "object",
+      "properties": {
+        "notificationId": { "type": "string", "description": "Unique ID." },
+        "companyId": { "type": "string", "description": "Tenant company association." },
+        "userId": { "type": "string", "description": "Recipient User auth UID." },
+        "title": { "type": "string", "description": "Subject title." },
+        "message": { "type": "string", "description": "Detailed body." },
+        "read": { "type": "boolean", "description": "Whether read by the user." },
+        "type": { "type": "string", "description": "Type tag (e.g., Leave, Onboarding, Payroll)." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Notification time." }
+      },
+      "required": ["notificationId", "companyId", "userId", "title", "message", "read", "createdAt"]
+    },
+    "audit_log": {
+      "title": "Audit log",
+      "description": "System configuration and transaction records tracking.",
+      "type": "object",
+      "properties": {
+        "logId": { "type": "string", "description": "Unique ID." },
+        "companyId": { "type": "string", "description": "Tenant company association." },
+        "userId": { "type": "string", "description": "Responsible operator auth UID." },
+        "action": { "type": "string", "description": "Description (e.g., 'Created employee ID EMP001')." },
+        "module": { "type": "string", "description": "SaaS module name." },
+        "details": { "type": "string", "description": "Detailed metadata changes." },
+        "ipAddress": { "type": "string", "description": "Operator origin address." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Operational timestamp." }
+      },
+      "required": ["logId", "companyId", "userId", "action", "module", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/companies/{companyId}": {
+      "schema": "company",
+      "description": "Collection storing different companies that subscribe to PeopleCloud HRIS."
+    },
+    "/users/{userId}": {
+      "schema": "user",
+      "description": "Flat users index mapping authentication status and permissions per tenant."
+    },
+    "/companies/{companyId}/employees/{employeeId}": {
+      "schema": "employee",
+      "description": "Tenant employees directory containing core payroll parameters, personal files, and role stats."
+    },
+    "/companies/{companyId}/departments/{departmentId}": {
+      "schema": "department",
+      "description": "Tenant company departments definition."
+    },
+    "/companies/{companyId}/attendance/{attendanceId}": {
+      "schema": "attendance",
+      "description": "Daily timesheets, check-in, check-out, and approved hours indexing."
+    },
+    "/companies/{companyId}/leave_requests/{leaveRequestId}": {
+      "schema": "leave_request",
+      "description": "Workflow requests for leaves, tracking approved and pending vacation logs."
+    },
+    "/companies/{companyId}/payroll_records/{payrollId}": {
+      "schema": "payroll_record",
+      "description": "Tenant monthly payroll preparation summary and run history."
+    },
+    "/companies/{companyId}/payslips/{payslipId}": {
+      "schema": "payslip",
+      "description": "Breakdowns of individual employee pay parameters for a particular payroll period."
+    },
+    "/companies/{companyId}/jobs/{jobId}": {
+      "schema": "job",
+      "description": "Active and past recruitment job listings."
+    },
+    "/companies/{companyId}/candidates/{candidateId}": {
+      "schema": "candidate",
+      "description": "Recruitment applicant files, score cards, and offer process tracker."
+    },
+    "/companies/{companyId}/onboarding_tasks/{taskId}": {
+      "schema": "onboarding_task",
+      "description": "New hire orientation milestones, orientation tasks, and status."
+    },
+    "/companies/{companyId}/hr_requests/{requestId}": {
+      "schema": "hr_request",
+      "description": "Helpdesk requests, certificates enquiries, salary confirmations and general tickets."
+    },
+    "/companies/{companyId}/documents/{documentId}": {
+      "schema": "document",
+      "description": "Secure file database storing policies, onboarding letters, appraisals and templates references."
+    },
+    "/companies/{companyId}/notifications/{notificationId}": {
+      "schema": "notification",
+      "description": "Tenant dashboard communications, alerts, and read markers."
+    },
+    "/companies/{companyId}/audit_logs/{logId}": {
+      "schema": "audit_log",
+      "description": "Operations and access security verification index."
+    }
+  }
+}
