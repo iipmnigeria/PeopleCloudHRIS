@@ -224,3 +224,62 @@ export interface AuditLog {
   ipAddress?: string;
   createdAt: string;
 }
+
+export interface AppraisalGoal {
+  goalId: string;
+  companyId: string;
+  employeeId: string;
+  title: string;
+  description: string;
+  weight: number; // e.g., 25 for 25%
+  status: 'Draft' | 'Approved' | 'In_Progress' | 'Achieved' | 'Missed';
+  createdAt: string;
+}
+
+export interface KPIEvaluation {
+  kpiName: string;
+  weight: number;
+  selfRating: number; // 1-5
+  managerRating: number; // 1-5
+}
+
+export interface PerformanceAppraisal {
+  appraisalId: string;
+  companyId: string;
+  employeeId: string;
+  period: string; // e.g., "2026 Annual Review"
+  status: 'Draft' | 'Submitted' | 'Reviewed' | 'Approved';
+  kpis: KPIEvaluation[];
+  selfFeedback: string;
+  managerFeedback: string;
+  finalScore?: number; // Calculated overall average rate
+  createdAt: string;
+}
+
+export interface TrainingCourse {
+  courseId: string;
+  companyId: string;
+  title: string;
+  provider: string;
+  description: string;
+  category: 'Leadership' | 'Technical' | 'Compliance' | 'Professional';
+  startDate: string;
+  endDate: string;
+  status: 'Upcoming' | 'Ongoing' | 'Completed';
+  capacity: number;
+  enrolledCount: number;
+}
+
+export interface TrainingEnrollment {
+  enrollmentId: string;
+  companyId: string;
+  employeeId: string;
+  courseId: string;
+  status: 'Enrolled' | 'Completed' | 'Canceled';
+  certificateUrl?: string;
+  score?: number;
+  feedback?: string;
+  completedAt?: string;
+  createdAt: string;
+}
+

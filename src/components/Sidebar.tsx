@@ -19,7 +19,10 @@ import {
   Compass,
   FileCheck2,
   CircleAlert,
-  MessageSquare
+  MessageSquare,
+  Award,
+  GraduationCap,
+  Activity
 } from 'lucide-react';
 import { collection, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -108,12 +111,15 @@ export default function Sidebar({
   const getMenuItems = () => {
     const items = [
       { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['SuperAdmin', 'CompanyAdmin', 'HRManager', 'LineManager', 'Employee', 'FinanceOfficer', 'Recruiter', 'Auditor'] },
+      { id: 'analytics', label: 'HR Analytics', icon: Activity, roles: ['SuperAdmin', 'CompanyAdmin', 'HRManager', 'LineManager', 'Auditor'] },
       { id: 'employees', label: 'Employee Database', icon: Users, roles: ['CompanyAdmin', 'HRManager', 'LineManager', 'Employee', 'FinanceOfficer', 'Auditor'] },
       { id: 'leave', label: 'Leave Manager', icon: CalendarDays, roles: ['CompanyAdmin', 'HRManager', 'LineManager', 'Employee', 'Auditor'] },
       { id: 'attendance', label: 'Time & Attendance', icon: Clock, roles: ['CompanyAdmin', 'HRManager', 'LineManager', 'Employee', 'Auditor'] },
       { id: 'payroll', label: 'Payroll Support', icon: CreditCard, roles: ['CompanyAdmin', 'HRManager', 'FinanceOfficer', 'Auditor'] },
       { id: 'recruitment', label: 'Recruitment Hub', icon: Briefcase, roles: ['CompanyAdmin', 'HRManager', 'Recruiter'] },
       { id: 'onboarding', label: 'Employee Onboarding', icon: ClipboardCheck, roles: ['CompanyAdmin', 'HRManager', 'LineManager', 'Recruiter', 'Employee'] },
+      { id: 'appraisals', label: 'Performance Appraisals', icon: Award, roles: ['CompanyAdmin', 'HRManager', 'LineManager', 'Employee'] },
+      { id: 'training', label: 'Training & L&D', icon: GraduationCap, roles: ['CompanyAdmin', 'HRManager', 'LineManager', 'Employee'] },
       { id: 'requests', label: 'HR Helpdesk', icon: HelpCircle, roles: ['CompanyAdmin', 'HRManager', 'LineManager', 'Employee'] },
       { id: 'google-chat', label: 'Google Chat', icon: MessageSquare, roles: ['SuperAdmin', 'CompanyAdmin', 'HRManager', 'LineManager', 'Employee', 'FinanceOfficer', 'Recruiter', 'Auditor'] },
       { id: 'audit-logs', label: 'Audit Logs', icon: FileCheck2, roles: ['SuperAdmin', 'CompanyAdmin', 'HRManager', 'Auditor'] },

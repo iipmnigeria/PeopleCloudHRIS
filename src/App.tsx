@@ -13,6 +13,9 @@ import AttendanceTracking from './components/AttendanceTracking';
 import PayrollSupport from './components/PayrollSupport';
 import HrRequests from './components/HrRequests';
 import RecruitmentOnboarding from './components/RecruitmentOnboarding';
+import PerformanceAppraisal from './components/PerformanceAppraisal';
+import LearningDevelopment from './components/LearningDevelopment';
+import HrAnalytics from './components/HrAnalytics';
 import Settings from './components/Settings';
 import AuditLogs from './components/AuditLogs';
 import GoogleChat from './components/GoogleChat';
@@ -266,6 +269,13 @@ export default function App() {
             />
           )}
 
+          {activeTab === 'analytics' && (
+            <HrAnalytics 
+              currentUser={currentUser} 
+              selectedTenantId={selectedTenantId} 
+            />
+          )}
+
           {activeTab === 'employees' && (
             <EmployeeDb 
               currentUser={currentUser} 
@@ -303,6 +313,20 @@ export default function App() {
 
           {activeTab === 'onboarding' && (
             <RecruitmentOnboarding 
+              currentUser={currentUser} 
+              selectedTenantId={selectedTenantId} 
+            />
+          )}
+
+          {activeTab === 'appraisals' && (
+            <PerformanceAppraisal 
+              currentUser={currentUser} 
+              selectedTenantId={selectedTenantId} 
+            />
+          )}
+
+          {activeTab === 'training' && (
+            <LearningDevelopment 
               currentUser={currentUser} 
               selectedTenantId={selectedTenantId} 
             />
