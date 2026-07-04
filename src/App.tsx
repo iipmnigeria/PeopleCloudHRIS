@@ -10,7 +10,7 @@ import Dashboard from './components/Dashboard';
 import EmployeeDb from './components/EmployeeDb';
 import LeaveManagement from './components/LeaveManagement';
 import AttendanceTracking from './components/AttendanceTracking';
-import PayrollSupport from './components/PayrollSupport';
+import TruePayrollEngine from './components/TruePayrollEngine';
 import HrRequests from './components/HrRequests';
 import RecruitmentOnboarding from './components/RecruitmentOnboarding';
 import PerformanceAppraisal from './components/PerformanceAppraisal';
@@ -180,7 +180,7 @@ export default function App() {
           {activeTab === 'leave' && <LeaveManagement currentUser={currentUser} selectedTenantId={selectedTenantId} />}
           {activeTab === 'attendance' && <AttendanceTracking currentUser={currentUser} selectedTenantId={selectedTenantId} />}
           {activeTab === 'remote-work' && <RemoteWorkEngine currentUser={currentUser} selectedTenantId={selectedTenantId} />}
-          {activeTab === 'payroll' && <PayrollSupport currentUser={currentUser} selectedTenantId={selectedTenantId} />}
+          {activeTab === 'payroll' && <TruePayrollEngine currentUser={currentUser} selectedTenantId={selectedTenantId} />}
           {activeTab === 'contractors' && <ContractorEngine currentUser={currentUser} selectedTenantId={selectedTenantId} />}
           {activeTab === 'recruitment' && <RecruitmentOnboarding currentUser={currentUser} selectedTenantId={selectedTenantId} />}
           {activeTab === 'talent-lifecycle' && <TalentLifecycleEngine currentUser={currentUser} selectedTenantId={selectedTenantId} />}
