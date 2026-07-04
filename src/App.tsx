@@ -11,6 +11,7 @@ import EmployeeDb from './components/EmployeeDb';
 import LeaveManagement from './components/LeaveManagement';
 import AttendanceTracking from './components/AttendanceTracking';
 import TruePayrollEngine from './components/TruePayrollEngine';
+import StatutoryComplianceCenter from './components/StatutoryComplianceCenter';
 import HrRequests from './components/HrRequests';
 import RecruitmentOnboarding from './components/RecruitmentOnboarding';
 import PerformanceAppraisal from './components/PerformanceAppraisal';
@@ -181,6 +182,7 @@ export default function App() {
           {activeTab === 'attendance' && <AttendanceTracking currentUser={currentUser} selectedTenantId={selectedTenantId} />}
           {activeTab === 'remote-work' && <RemoteWorkEngine currentUser={currentUser} selectedTenantId={selectedTenantId} />}
           {activeTab === 'payroll' && <TruePayrollEngine currentUser={currentUser} selectedTenantId={selectedTenantId} />}
+          {activeTab === 'statutory-compliance' && <StatutoryComplianceCenter currentUser={currentUser} selectedTenantId={selectedTenantId} />}
           {activeTab === 'contractors' && <ContractorEngine currentUser={currentUser} selectedTenantId={selectedTenantId} />}
           {activeTab === 'recruitment' && <RecruitmentOnboarding currentUser={currentUser} selectedTenantId={selectedTenantId} />}
           {activeTab === 'talent-lifecycle' && <TalentLifecycleEngine currentUser={currentUser} selectedTenantId={selectedTenantId} />}
