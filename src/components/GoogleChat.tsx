@@ -1,5 +1,6 @@
 import React from 'react';
 import SmartWorkforceHub from './SmartWorkforceHub';
+import OfflineModeIndicator from './OfflineModeIndicator';
 
 interface GoogleChatProps {
   currentUser: {
@@ -13,5 +14,10 @@ interface GoogleChatProps {
 }
 
 export default function GoogleChat(props: GoogleChatProps) {
-  return <SmartWorkforceHub {...props} />;
+  return (
+    <>
+      <SmartWorkforceHub {...props} />
+      <OfflineModeIndicator />
+    </>
+  );
 }
