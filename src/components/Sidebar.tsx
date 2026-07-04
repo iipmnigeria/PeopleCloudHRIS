@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { UserRole } from '../types';
-import { Activity, Award, Bell, Briefcase, CalendarDays, Clock, Compass, Contact, CreditCard, FileCheck2, Globe, GraduationCap, HelpCircle, LayoutDashboard, LogOut, Menu, MessageSquare, Settings, Sparkles, Users, X } from 'lucide-react';
+import { Activity, Award, Bell, Briefcase, CalendarDays, Clock, Compass, Contact, CreditCard, FileCheck2, Globe, GraduationCap, HelpCircle, LayoutDashboard, Landmark, LogOut, Menu, MessageSquare, Settings, Sparkles, Users, X } from 'lucide-react';
 
 interface SidebarProps {
   activeTab: string;
@@ -32,6 +32,7 @@ export default function Sidebar({ activeTab, setActiveTab, currentUser, currentC
     { id: 'attendance', label: 'Time & Attendance', icon: Clock, roles: ['CompanyAdmin', 'HRManager', 'LineManager', 'Employee', 'Auditor'] },
     { id: 'remote-work', label: 'Remote Work Engine', icon: Globe, roles: ['CompanyAdmin', 'HRManager', 'LineManager', 'Employee', 'Auditor'] },
     { id: 'payroll', label: 'True Payroll Engine', icon: CreditCard, roles: ['CompanyAdmin', 'HRManager', 'FinanceOfficer', 'Auditor'] },
+    { id: 'statutory-compliance', label: 'Statutory Compliance', icon: Landmark, roles: ['SuperAdmin', 'CompanyAdmin', 'HRManager', 'FinanceOfficer', 'Auditor'] },
     { id: 'contractors', label: 'Contractor Hub', icon: Briefcase, roles: ['CompanyAdmin', 'HRManager', 'FinanceOfficer', 'Auditor'] },
     { id: 'recruitment', label: 'Recruitment Hub', icon: Briefcase, roles: ['CompanyAdmin', 'HRManager', 'Recruiter'] },
     { id: 'talent-lifecycle', label: 'Talent Lifecycle', icon: Sparkles, roles: ['SuperAdmin', 'CompanyAdmin', 'HRManager', 'LineManager', 'Employee', 'Recruiter', 'Auditor'] },
