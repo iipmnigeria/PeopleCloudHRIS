@@ -14,7 +14,12 @@ import {
   ChevronRight, 
   Building2, 
   FileText,
-  AlertCircle
+  AlertCircle,
+  UploadCloud,
+  FileCheck,
+  ShieldAlert,
+  Send,
+  Plus
 } from 'lucide-react';
 import { collection, getDocs, getDoc, addDoc, doc, updateDoc, setDoc, query, where } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -49,6 +54,26 @@ export default function Dashboard({ currentUser, selectedTenantId }: DashboardPr
   const [clockedInToday, setClockedInToday] = useState<Attendance | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [clockActionLoading, setClockActionLoading] = useState(false);
+
+  // Quick Action & Modal States
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
+  const [showTicketModal, setShowTicketModal] = useState(false);
+  const [showUploadRenewalModal, setShowUploadRenewalModal] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Form Fields for Quick Actions
+  const [quickLeaveType, setQuickLeaveType] = useState('Annual');
+  const [quickLeaveStart, setQuickLeaveStart] = useState('');
+  const [quickLeaveEnd, setQuickLeaveEnd] = useState('');
+  const [quickLeaveReason, setQuickLeaveReason] = useState('');
+
+  const [quickTicketCategory, setQuickTicketCategory] = useState('Payroll');
+  const [quickTicketDesc, setQuickTicketDesc] = useState('');
+
+  const [quickDocType, setQuickDocType] = useState('Visa Permission');
+  const [quickDocExpiry, setQuickDocExpiry] = useState('');
+  const [quickDocFile, setQuickDocFile] = useState<string | null>(null);
+  const [dragActive, setDragActive] = useState(false);
 
   // Load clock ticking
   useEffect(() => {
@@ -201,6 +226,94 @@ export default function Dashboard({ currentUser, selectedTenantId }: DashboardPr
     } finally {
       setClockActionLoading(false);
     }
+  };
+
+  // Submit Quick Leave of Absence
+  const handleQuickLeaveSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!companyId) return;
+    try {
+      const myProfile = employees.find(emp => emp.email === currentUser.email);
+      const leaveId = 'leave-' + Math.random().toString(36).substring(2, 9);
+      const startD = new Date(quickLeaveStart);
+      const endD = new Date(quickLeaveEnd);
+      const diffTime = Math.abs(endD.getTime() - startD.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
+
+      const newLeave: LeaveRequest = {
+        leaveRequestId: leaveId,
+        companyId,
+        employeeId: myProfile?.employeeId || 'unknown-employee',
+        leaveType: quickLeaveType as any,
+        startDate: quickLeaveStart,
+        endDate: quickLeaveEnd,
+        totalDays: diffDays,
+        status: 'Pending',
+        comment: quickLeaveReason,
+        createdAt: new Date().toISOString()
+      };
+
+      await setDoc(doc(db, `companies/${companyId}/leave_requests`, leaveId), newLeave);
+      setLeaves([...leaves, newLeave]);
+      
+      // Reset Form & Close Modal
+      setQuickLeaveStart('');
+      setQuickLeaveEnd('');
+      setQuickLeaveReason('');
+      setShowLeaveModal(false);
+      
+      setToastMessage('🎉 Leave request submitted successfully into corporate pipeline!');
+      setTimeout(() => setToastMessage(null), 4000);
+    } catch (err) {
+      console.error('Error submitting quick leave:', err);
+    }
+  };
+
+  // Submit Quick Support Ticket
+  const handleQuickTicketSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!companyId) return;
+    try {
+      const myProfile = employees.find(emp => emp.email === currentUser.email);
+      const reqId = 'req-' + Math.random().toString(36).substring(2, 9);
+
+      const newTicket: HRRequest = {
+        requestId: reqId,
+        companyId,
+        employeeId: myProfile?.employeeId || 'unknown-employee',
+        title: `Quick ${quickTicketCategory} Query`,
+        type: quickTicketCategory,
+        description: quickTicketDesc,
+        status: 'Open',
+        createdAt: new Date().toISOString()
+      };
+
+      await setDoc(doc(db, `companies/${companyId}/hr_requests`, reqId), newTicket);
+      setRequests([...requests, newTicket]);
+
+      // Reset & Close
+      setQuickTicketDesc('');
+      setShowTicketModal(false);
+
+      setToastMessage('🎉 Helpdesk ticket registered with core People Operations team!');
+      setTimeout(() => setToastMessage(null), 4000);
+    } catch (err) {
+      console.error('Error submitting quick ticket:', err);
+    }
+  };
+
+  // Submit Document Renewal Upload
+  const handleQuickUploadRenewal = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quickDocExpiry) return;
+    
+    setToastMessage(`🎉 Renewed ${quickDocType} successfully processed! Expiry updated to ${quickDocExpiry}.`);
+    setTimeout(() => setToastMessage(null), 4000);
+
+    // Reset & Close
+    setQuickDocExpiry('');
+    setQuickDocFile(null);
+    setShowUploadRenewalModal(false);
   };
 
   // Compute stats helper
@@ -383,6 +496,127 @@ export default function Dashboard({ currentUser, selectedTenantId }: DashboardPr
               </table>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* DYNAMIC COMPLIANCE & SHORTCUT ACTION PANELS */}
+      {currentUser.role !== 'SuperAdmin' && (
+        <div className="space-y-4">
+          
+          {/* Success Toast */}
+          {toastMessage && (
+            <div className="fixed top-6 right-6 z-50 bg-slate-900 border border-slate-800 text-white p-3.5 rounded-xl shadow-xl flex items-center space-x-2 animate-bounce">
+              <CheckCircle className="w-5 h-5 text-emerald-400" />
+              <span className="text-xs font-semibold">{toastMessage}</span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            {/* Quick Request Shortcuts */}
+            <div className="lg:col-span-2 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+              <div className="border-b border-slate-100 pb-2.5">
+                <h3 className="font-display font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                  <Sparkles className="w-4.5 h-4.5 text-brand-600 animate-pulse" />
+                  <span>Quick Request Shortcuts</span>
+                </h3>
+                <p className="text-[10px] text-slate-400">Instant shortcuts to lodge tickets, leaves, or documents without routing delays.</p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {/* 1. Leave Shortcut */}
+                <button
+                  type="button"
+                  onClick={() => setShowLeaveModal(true)}
+                  className="p-4 bg-slate-50 hover:bg-slate-100 border border-slate-200/60 rounded-xl text-left transition-all hover:scale-[1.02] cursor-pointer space-y-2 group"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all">
+                    <CalendarDays className="w-4.5 h-4.5" />
+                  </div>
+                  <div>
+                    <span className="font-bold text-slate-900 text-xs block">Request Leave</span>
+                    <span className="text-[10px] text-slate-400 block mt-0.5">Submit sick or vacation logs</span>
+                  </div>
+                </button>
+
+                {/* 2. Helpdesk Shortcut */}
+                <button
+                  type="button"
+                  onClick={() => setShowTicketModal(true)}
+                  className="p-4 bg-slate-50 hover:bg-slate-100 border border-slate-200/60 rounded-xl text-left transition-all hover:scale-[1.02] cursor-pointer space-y-2 group"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center group-hover:bg-amber-600 group-hover:text-white transition-all">
+                    <HelpCircle className="w-4.5 h-4.5" />
+                  </div>
+                  <div>
+                    <span className="font-bold text-slate-900 text-xs block">Submit HR Ticket</span>
+                    <span className="text-[10px] text-slate-400 block mt-0.5">Raise inquiry or support logs</span>
+                  </div>
+                </button>
+
+                {/* 3. Document Renewal Upload Shortcut */}
+                <button
+                  type="button"
+                  onClick={() => setShowUploadRenewalModal(true)}
+                  className="p-4 bg-slate-50 hover:bg-slate-100 border border-slate-200/60 rounded-xl text-left transition-all hover:scale-[1.02] cursor-pointer space-y-2 group"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-all">
+                    <UploadCloud className="w-4.5 h-4.5" />
+                  </div>
+                  <div>
+                    <span className="font-bold text-slate-900 text-xs block">Renew Document</span>
+                    <span className="text-[10px] text-slate-400 block mt-0.5">Upload visa or contract papers</span>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            {/* Document Expiry Alerts */}
+            <div className="lg:col-span-1 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+              <div className="border-b border-slate-100 pb-2.5 flex justify-between items-center">
+                <h3 className="font-display font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                  <ShieldAlert className="w-4.5 h-4.5 text-rose-500" />
+                  <span>Compliance Desk</span>
+                </h3>
+                <span className="px-2 py-0.2 bg-rose-50 text-rose-700 font-mono text-[9px] font-bold rounded border border-rose-100">
+                  2 Alerts
+                </span>
+              </div>
+
+              {/* List of critical documents nearing expiry */}
+              <div className="space-y-2.5">
+                {[
+                  { name: 'Sarah Lin: H1-B Visa', days: 12, urgent: true, desc: 'Requires department verification' },
+                  { name: 'Corporate Building Lease', days: 28, urgent: false, desc: 'Finance allocation review' }
+                ].map((docItem, idx) => (
+                  <div key={idx} className="p-3 bg-slate-50 border border-slate-150 rounded-xl text-xs space-y-2 flex flex-col justify-between">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-slate-900">{docItem.name}</span>
+                      <span className={`px-2 py-0.5 rounded font-mono text-[9px] font-bold ${
+                        docItem.urgent ? 'bg-rose-50 border border-rose-100 text-rose-700' : 'bg-amber-50 border border-amber-150 text-amber-700'
+                      }`}>
+                        {docItem.days} Days Left
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 italic">"{docItem.desc}"</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setQuickDocType(docItem.name);
+                        setShowUploadRenewalModal(true);
+                      }}
+                      className="w-full mt-1 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-[10px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
+                    >
+                      <UploadCloud className="w-3 h-3" />
+                      <span>Upload Renewal</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+          </div>
+
         </div>
       )}
 
@@ -739,6 +973,252 @@ export default function Dashboard({ currentUser, selectedTenantId }: DashboardPr
                 )}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* QUICK TIME-OFF REQUEST MODAL */}
+      {showLeaveModal && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full overflow-hidden animate-scale-up">
+            <div className="bg-slate-900 p-5 text-white flex justify-between items-center">
+              <div>
+                <h3 className="font-display font-bold text-sm">Submit Quick Time-Off</h3>
+                <p className="text-[10px] text-slate-400 mt-0.5">Lodge a formal vacation or sick leave application.</p>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setShowLeaveModal(false)}
+                className="text-slate-400 hover:text-white font-bold text-sm cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleQuickLeaveSubmit} className="p-5 space-y-4 text-xs">
+              <div>
+                <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1 font-mono">Leave Category</label>
+                <select
+                  value={quickLeaveType}
+                  onChange={(e) => setQuickLeaveType(e.target.value)}
+                  className="w-full bg-white border border-slate-200 rounded-lg p-2 text-slate-800 focus:ring-1 focus:ring-brand-500 focus:outline-none"
+                >
+                  <option value="Annual">✈️ Vacation / Annual Leave</option>
+                  <option value="Sick">🩺 Medical / Sick Leave</option>
+                  <option value="Maternity">🍼 Maternity / Family Care</option>
+                  <option value="Unpaid">💼 Unpaid Leave</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1 font-mono">Start Date</label>
+                  <input
+                    type="date"
+                    required
+                    value={quickLeaveStart}
+                    onChange={(e) => setQuickLeaveStart(e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded-lg p-2 text-slate-800 focus:ring-1 focus:ring-brand-500 focus:outline-none font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1 font-mono">End Date</label>
+                  <input
+                    type="date"
+                    required
+                    value={quickLeaveEnd}
+                    onChange={(e) => setQuickLeaveEnd(e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded-lg p-2 text-slate-800 focus:ring-1 focus:ring-brand-500 focus:outline-none font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1 font-mono">Reason / Comment</label>
+                <textarea
+                  rows={3}
+                  required
+                  placeholder="Provide details regarding your request..."
+                  value={quickLeaveReason}
+                  onChange={(e) => setQuickLeaveReason(e.target.value)}
+                  className="w-full bg-white border border-slate-200 rounded-lg p-2 text-slate-800 focus:ring-1 focus:ring-brand-500 focus:outline-none"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full bg-brand-600 hover:bg-brand-700 text-white p-2.5 rounded-xl font-bold transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Send className="w-4 h-4" />
+                <span>Lodge Leave Ticket</span>
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* QUICK HELPDESK TICKET MODAL */}
+      {showTicketModal && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full overflow-hidden animate-scale-up">
+            <div className="bg-slate-900 p-5 text-white flex justify-between items-center">
+              <div>
+                <h3 className="font-display font-bold text-sm">Raise Helpdesk Ticket</h3>
+                <p className="text-[10px] text-slate-400 mt-0.5">Route an inquiry directly to the HR operations desk.</p>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setShowTicketModal(false)}
+                className="text-slate-400 hover:text-white font-bold text-sm cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleQuickTicketSubmit} className="p-5 space-y-4 text-xs">
+              <div>
+                <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1 font-mono">Ticket Category</label>
+                <select
+                  value={quickTicketCategory}
+                  onChange={(e) => setQuickTicketCategory(e.target.value)}
+                  className="w-full bg-white border border-slate-200 rounded-lg p-2 text-slate-800 focus:ring-1 focus:ring-brand-500 focus:outline-none"
+                >
+                  <option value="Payroll">💳 Payroll, Taxes & Reimbursements</option>
+                  <option value="Benefits">🏥 Health Insurance & Benefits</option>
+                  <option value="IT Support">💻 Work Station & IT Credentials</option>
+                  <option value="General">🏢 Workplace Operations & Feedback</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1 font-mono">Inquiry Details</label>
+                <textarea
+                  rows={4}
+                  required
+                  placeholder="Explain your queries or technical bottlenecks with as much detail as possible..."
+                  value={quickTicketDesc}
+                  onChange={(e) => setQuickTicketDesc(e.target.value)}
+                  className="w-full bg-white border border-slate-200 rounded-lg p-2 text-slate-800 focus:ring-1 focus:ring-brand-500 focus:outline-none"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full bg-brand-600 hover:bg-brand-700 text-white p-2.5 rounded-xl font-bold transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Send className="w-4 h-4" />
+                <span>Submit Ticket</span>
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* QUICK DOCUMENT UPLOAD RENEWAL MODAL (DRAG-AND-DROP + MANUAL SELECT) */}
+      {showUploadRenewalModal && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full overflow-hidden animate-scale-up">
+            <div className="bg-slate-900 p-5 text-white flex justify-between items-center">
+              <div>
+                <h3 className="font-display font-bold text-sm">Upload Renewed Document</h3>
+                <p className="text-[10px] text-slate-400 mt-0.5">Drag-and-drop passport, visa, or contract papers securely.</p>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setShowUploadRenewalModal(false)}
+                className="text-slate-400 hover:text-white font-bold text-sm cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleQuickUploadRenewal} className="p-5 space-y-4 text-xs">
+              <div>
+                <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1 font-mono">Document Classification</label>
+                <input
+                  type="text"
+                  required
+                  value={quickDocType}
+                  onChange={(e) => setQuickDocType(e.target.value)}
+                  className="w-full bg-white border border-slate-200 rounded-lg p-2 text-slate-800 focus:ring-1 focus:ring-brand-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1 font-mono">New Expiration Date</label>
+                <input
+                  type="date"
+                  required
+                  value={quickDocExpiry}
+                  onChange={(e) => setQuickDocExpiry(e.target.value)}
+                  className="w-full bg-white border border-slate-200 rounded-lg p-2 text-slate-800 focus:ring-1 focus:ring-brand-500 focus:outline-none font-mono"
+                />
+              </div>
+
+              {/* Drag and Drop Zone */}
+              <div>
+                <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1 font-mono">Credential Document Upload</label>
+                <div
+                  onDragEnter={(e) => { e.preventDefault(); setDragActive(true); }}
+                  onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
+                  onDragLeave={(e) => { e.preventDefault(); setDragActive(false); }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setDragActive(false);
+                    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                      setQuickDocFile(e.dataTransfer.files[0].name);
+                    }
+                  }}
+                  onClick={() => document.getElementById('manual-file-select')?.click()}
+                  className={`border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer flex flex-col items-center space-y-2 ${
+                    dragActive ? 'border-brand-600 bg-brand-50/40' : 'border-slate-200 hover:border-slate-350 bg-slate-50/50'
+                  }`}
+                >
+                  <input
+                    id="manual-file-select"
+                    type="file"
+                    className="hidden"
+                    accept=".pdf,.png,.jpg,.jpeg"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        setQuickDocFile(e.target.files[0].name);
+                      }
+                    }}
+                  />
+
+                  {quickDocFile ? (
+                    <>
+                      <FileCheck className="w-8 h-8 text-emerald-500 animate-bounce" />
+                      <div>
+                        <span className="font-bold text-slate-900 block font-mono">{quickDocFile}</span>
+                        <span className="text-[10px] text-emerald-600 font-semibold block mt-0.5">Ready for upload verification</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <UploadCloud className="w-8 h-8 text-slate-400 group-hover:text-brand-500" />
+                      <div>
+                        <span className="font-bold text-slate-900 block">Drag & drop files here</span>
+                        <span className="text-[10px] text-slate-400 block mt-0.5">Supports PDF, PNG, JPG (Max 15MB)</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={!quickDocExpiry || !quickDocFile}
+                className={`w-full p-2.5 rounded-xl font-bold transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer ${
+                  (!quickDocExpiry || !quickDocFile) 
+                    ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                    : 'bg-brand-600 hover:bg-brand-700 text-white'
+                }`}
+              >
+                <FileText className="w-4 h-4" />
+                <span>Verify & Save Renewal</span>
+              </button>
+            </form>
           </div>
         </div>
       )}

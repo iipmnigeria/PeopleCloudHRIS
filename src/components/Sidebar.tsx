@@ -22,10 +22,13 @@ import {
   MessageSquare,
   Award,
   GraduationCap,
-  Activity
+  Activity,
+  Globe,
+  Contact
 } from 'lucide-react';
 import { collection, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { db } from '../firebase';
+import { getGlobalCurrency, setGlobalCurrency, subscribeToCurrency } from '../currency';
 
 interface SidebarProps {
   activeTab: string;
@@ -59,6 +62,13 @@ export default function Sidebar({
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [notifications, setNotifications] = useState<HRNotification[]>([]);
   const [showNotifPanel, setShowNotifPanel] = useState(false);
+  const [currency, setCurrency] = useState<'NGN' | 'USD'>(getGlobalCurrency());
+
+  useEffect(() => {
+    return subscribeToCurrency((c) => {
+      setCurrency(c);
+    });
+  }, []);
 
   // Load in-app notifications
   useEffect(() => {
@@ -113,9 +123,12 @@ export default function Sidebar({
       { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['SuperAdmin', 'CompanyAdmin', 'HRManager', 'LineManager', 'Employee', 'FinanceOfficer', 'Recruiter', 'Auditor'] },
       { id: 'analytics', label: 'HR Analytics', icon: Activity, roles: ['SuperAdmin', 'CompanyAdmin', 'HRManager', 'LineManager', 'Auditor'] },
       { id: 'employees', label: 'Employee Database', icon: Users, roles: ['CompanyAdmin', 'HRManager', 'LineManager', 'Employee', 'FinanceOfficer', 'Auditor'] },
+      { id: 'id-cards', label: 'Employee ID Cards', icon: Contact, roles: ['CompanyAdmin', 'HRManager', 'Employee', 'Auditor'] },
       { id: 'leave', label: 'Leave Manager', icon: CalendarDays, roles: ['CompanyAdmin', 'HRManager', 'LineManager', 'Employee', 'Auditor'] },
       { id: 'attendance', label: 'Time & Attendance', icon: Clock, roles: ['CompanyAdmin', 'HRManager', 'LineManager', 'Employee', 'Auditor'] },
+      { id: 'remote-work', label: 'Remote Work Engine', icon: Globe, roles: ['CompanyAdmin', 'HRManager', 'LineManager', 'Employee', 'Auditor'] },
       { id: 'payroll', label: 'Payroll Support', icon: CreditCard, roles: ['CompanyAdmin', 'HRManager', 'FinanceOfficer', 'Auditor'] },
+      { id: 'contractors', label: 'Contractor Hub', icon: Briefcase, roles: ['CompanyAdmin', 'HRManager', 'FinanceOfficer', 'Auditor'] },
       { id: 'recruitment', label: 'Recruitment Hub', icon: Briefcase, roles: ['CompanyAdmin', 'HRManager', 'Recruiter'] },
       { id: 'onboarding', label: 'Employee Onboarding', icon: ClipboardCheck, roles: ['CompanyAdmin', 'HRManager', 'LineManager', 'Recruiter', 'Employee'] },
       { id: 'appraisals', label: 'Performance Appraisals', icon: Award, roles: ['CompanyAdmin', 'HRManager', 'LineManager', 'Employee'] },
@@ -347,6 +360,41 @@ export default function Sidebar({
                 )}
               </button>
             )}
+          </div>
+
+          {/* Smart Currency Toggle */}
+          <div className="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80 space-y-2">
+            <div className="flex items-center justify-between text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+              <span>Billing Currency</span>
+              <span className="text-brand-400 font-mono flex items-center gap-1 text-[8px]">
+                <span className="inline-block w-1 h-1 rounded-full bg-emerald-500 animate-pulse"></span>
+                Smart Match
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-1 p-0.5 bg-slate-900 rounded-lg border border-slate-800">
+              <button
+                onClick={() => setGlobalCurrency('NGN')}
+                className={`py-1 text-[10px] font-bold rounded transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                  currency === 'NGN'
+                    ? 'bg-brand-600 text-white shadow'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <span>🇳🇬</span>
+                <span>Naira (₦)</span>
+              </button>
+              <button
+                onClick={() => setGlobalCurrency('USD')}
+                className={`py-1 text-[10px] font-bold rounded transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                  currency === 'USD'
+                    ? 'bg-brand-600 text-white shadow'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <span>🇺🇸</span>
+                <span>USD ($)</span>
+              </button>
+            </div>
           </div>
 
           {/* View Marketing Site Button */}

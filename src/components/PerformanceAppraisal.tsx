@@ -53,6 +53,13 @@ export default function PerformanceAppraisal({ currentUser, selectedTenantId }: 
   const [goalWeight, setGoalWeight] = useState(25);
   const [goalEmployeeId, setGoalEmployeeId] = useState('');
 
+  // Extended goal hierarchy states
+  const [goalLevel, setGoalLevel] = useState<'Employee' | 'Department' | 'Organisation'>('Employee');
+  const [goalDeptId, setGoalDeptId] = useState('dept-eng');
+  const [goalParentId, setGoalParentId] = useState('');
+  const [goalProgress, setGoalProgress] = useState(0);
+  const [levelFilter, setLevelFilter] = useState<'All' | 'Employee' | 'Department' | 'Organisation'>('All');
+
   // Appraisals state
   const [appraisals, setAppraisals] = useState<IPerformanceAppraisal[]>([]);
   const [selectedAppraisal, setSelectedAppraisal] = useState<IPerformanceAppraisal | null>(null);
@@ -122,17 +129,24 @@ export default function PerformanceAppraisal({ currentUser, selectedTenantId }: 
   // --- GOAL ACTIONS ---
   const handleAddGoal = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!companyId || !goalTitle || !goalEmployeeId) return;
+    if (!companyId || !goalTitle) return;
 
     try {
-      const targetEmp = employees.find(e => e.employeeId === goalEmployeeId);
-      const newGoal: Omit<AppraisalGoal, 'goalId'> = {
+      const empId = goalLevel === 'Organisation' 
+        ? 'company-wide' 
+        : (goalLevel === 'Department' ? `dept-${goalDeptId}` : goalEmployeeId);
+
+      const newGoal: any = {
         companyId,
-        employeeId: goalEmployeeId,
+        employeeId: empId || '',
         title: goalTitle,
         description: goalDesc,
         weight: Number(goalWeight),
         status: isHR || isManager ? 'Approved' : 'Draft',
+        level: goalLevel,
+        departmentId: goalLevel === 'Department' ? goalDeptId : '',
+        parentGoalId: goalLevel !== 'Organisation' ? goalParentId : '',
+        progress: Number(goalProgress) || 0,
         createdAt: new Date().toISOString()
       };
 
@@ -141,6 +155,8 @@ export default function PerformanceAppraisal({ currentUser, selectedTenantId }: 
       setGoalTitle('');
       setGoalDesc('');
       setGoalWeight(25);
+      setGoalParentId('');
+      setGoalProgress(0);
     } catch (err) {
       console.error('Error adding goal:', err);
     }
@@ -154,6 +170,18 @@ export default function PerformanceAppraisal({ currentUser, selectedTenantId }: 
       setGoals(goals.map(g => g.goalId === goalId ? { ...g, status } : g));
     } catch (err) {
       console.error('Error updating goal:', err);
+    }
+  };
+
+  const handleUpdateGoalProgress = async (goalId: string, newProgress: number) => {
+    if (!companyId) return;
+    const boundedProgress = Math.max(0, Math.min(100, newProgress));
+    try {
+      const docRef = doc(db, `companies/${companyId}/goals`, goalId);
+      await updateDoc(docRef, { progress: boundedProgress });
+      setGoals(goals.map(g => g.goalId === goalId ? { ...g, progress: boundedProgress } as any : g));
+    } catch (err) {
+      console.error('Error updating goal progress:', err);
     }
   };
 
@@ -295,7 +323,14 @@ export default function PerformanceAppraisal({ currentUser, selectedTenantId }: 
   const getFilteredGoals = () => {
     let filtered = goals;
     if (isEmployeeOnly && currentEmployeeProfile) {
-      filtered = goals.filter(g => g.employeeId === currentEmployeeProfile.employeeId);
+      filtered = goals.filter(g => 
+        g.employeeId === currentEmployeeProfile.employeeId || 
+        g.employeeId === 'company-wide' || 
+        g.employeeId === `dept-${currentEmployeeProfile.department || 'eng'}`
+      );
+    }
+    if (levelFilter !== 'All') {
+      filtered = filtered.filter(g => (g as any).level === levelFilter);
     }
     if (searchQuery) {
       filtered = filtered.filter(g => {
@@ -431,37 +466,97 @@ export default function PerformanceAppraisal({ currentUser, selectedTenantId }: 
                 <TrendingUp className="w-4 h-4 text-brand-600" />
                 <span>Create New Goal / KPI</span>
               </h2>
-              <p className="text-[10px] text-slate-400 mt-1">Set realistic goals with assigned weights.</p>
+              <p className="text-[10px] text-slate-400 mt-1">Establish aligned strategic landmarks & employee objectives.</p>
             </div>
 
             <form onSubmit={handleAddGoal} className="space-y-3">
-              {/* Target Employee */}
+              
+              {/* Goal Level selection */}
               <div>
-                <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Target Employee</label>
-                {isEmployeeOnly ? (
-                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-medium text-slate-700">
-                    {currentEmployeeProfile?.firstName} {currentEmployeeProfile?.lastName} (Self)
-                  </div>
-                ) : (
+                <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1 font-mono">Goal Hierarchy Level</label>
+                <select
+                  value={goalLevel}
+                  onChange={(e) => {
+                    const val = e.target.value as any;
+                    setGoalLevel(val);
+                    if (val === 'Organisation') {
+                      setGoalEmployeeId('company-wide');
+                    }
+                  }}
+                  className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs text-slate-800 font-semibold focus:outline-none focus:ring-1 focus:ring-brand-500"
+                >
+                  <option value="Employee">👤 Individual Employee level</option>
+                  <option value="Department">👥 Departmental unit milestone</option>
+                  <option value="Organisation">🏢 Company Organisation target</option>
+                </select>
+              </div>
+
+              {/* Conditional department selector */}
+              {goalLevel === 'Department' && (
+                <div>
+                  <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1 font-mono">Associated Department</label>
                   <select
-                    value={goalEmployeeId}
-                    onChange={(e) => setGoalEmployeeId(e.target.value)}
-                    required
+                    value={goalDeptId}
+                    onChange={(e) => setGoalDeptId(e.target.value)}
                     className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-brand-500"
                   >
-                    <option value="">-- Select Employee --</option>
-                    {employees.map(emp => (
-                      <option key={emp.employeeId} value={emp.employeeId}>
-                        {emp.firstName} {emp.lastName}
+                    <option value="dept-eng">Engineering Department</option>
+                    <option value="dept-sales">Sales & Growth</option>
+                    <option value="dept-hr">HR & Operations</option>
+                    <option value="dept-finance">Finance & Treasury</option>
+                    <option value="dept-product">Product & Design</option>
+                  </select>
+                </div>
+              )}
+
+              {/* Target Employee (Only for Employee goals) */}
+              {goalLevel === 'Employee' && (
+                <div>
+                  <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1 font-mono">Target Employee</label>
+                  {isEmployeeOnly ? (
+                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-medium text-slate-700">
+                      {currentEmployeeProfile?.firstName} {currentEmployeeProfile?.lastName} (Self)
+                    </div>
+                  ) : (
+                    <select
+                      value={goalEmployeeId}
+                      onChange={(e) => setGoalEmployeeId(e.target.value)}
+                      required
+                      className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                    >
+                      <option value="">-- Select Employee --</option>
+                      {employees.map(emp => (
+                        <option key={emp.employeeId} value={emp.employeeId}>
+                          {emp.firstName} {emp.lastName}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              )}
+
+              {/* Aligned Parent Goal (to link / map goal) */}
+              {goalLevel !== 'Organisation' && (
+                <div>
+                  <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1 font-mono">Map to Corporate Target (Alignment)</label>
+                  <select
+                    value={goalParentId}
+                    onChange={(e) => setGoalParentId(e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  >
+                    <option value="">-- No Direct Parent Target --</option>
+                    {goals.filter(g => (g as any).level === 'Organisation' || (g as any).level === 'Department').map(g => (
+                      <option key={g.goalId} value={g.goalId}>
+                        {((g as any).level === 'Organisation' ? '🏢 ' : '👥 ') + g.title}
                       </option>
                     ))}
                   </select>
-                )}
-              </div>
+                </div>
+              )}
 
               {/* Goal Title */}
               <div>
-                <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Goal Title</label>
+                <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1 font-mono">Goal Title</label>
                 <input
                   type="text"
                   placeholder="e.g. Increase sales conversion by 15%"
@@ -474,44 +569,88 @@ export default function PerformanceAppraisal({ currentUser, selectedTenantId }: 
 
               {/* Description */}
               <div>
-                <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Description</label>
+                <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1 font-mono">Description & Key Results</label>
                 <textarea
-                  rows={3}
+                  rows={2}
                   placeholder="Provide precise measurable KPIs..."
                   value={goalDesc}
                   onChange={(e) => setGoalDesc(e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs text-slate-800 focus:outline-none"
+                  className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-brand-500"
                 />
               </div>
 
-              {/* Goal Weight */}
-              <div>
-                <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Goal Weight (%)</label>
-                <input
-                  type="number"
-                  min="5"
-                  max="100"
-                  value={goalWeight}
-                  onChange={(e) => setGoalWeight(Number(e.target.value))}
-                  required
-                  className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs text-slate-800 focus:outline-none"
-                />
+              {/* Goal Weight and Starting progress */}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1 font-mono">Weight (%)</label>
+                  <input
+                    type="number"
+                    min="5"
+                    max="100"
+                    value={goalWeight}
+                    onChange={(e) => setGoalWeight(Number(e.target.value))}
+                    required
+                    className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1 font-mono">Starting progress (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={goalProgress}
+                    onChange={(e) => setGoalProgress(Number(e.target.value))}
+                    required
+                    className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  />
+                </div>
               </div>
 
               <button
                 type="submit"
-                className="w-full bg-brand-600 hover:bg-brand-700 text-white rounded-lg p-2 text-xs font-semibold flex items-center justify-center space-x-1.5 shadow transition-all"
+                className="w-full bg-brand-600 hover:bg-brand-700 text-white rounded-lg p-2 text-xs font-semibold flex items-center justify-center space-x-1.5 shadow transition-all cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
-                <span>Submit Goal</span>
+                <span>Submit Goal Target</span>
               </button>
             </form>
           </div>
 
           {/* RIGHT: Goals Listing */}
           <div className="lg:col-span-2 space-y-4">
-            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-              <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">Active Appraisal Goals</h2>
+            
+            {/* Visual Level Filters Bar */}
+            <div className="bg-slate-100 p-1.5 rounded-xl border border-slate-200 flex flex-wrap gap-1">
+              {[
+                { key: 'All', label: 'All Levels', icon: '🎯' },
+                { key: 'Organisation', label: 'Organisation Targets', icon: '🏢' },
+                { key: 'Department', label: 'Department Milestones', icon: '👥' },
+                { key: 'Employee', label: 'Individual Goals', icon: '👤' }
+              ].map((lvl) => (
+                <button
+                  key={lvl.key}
+                  type="button"
+                  onClick={() => setLevelFilter(lvl.key as any)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                    levelFilter === lvl.key
+                      ? 'bg-white text-slate-900 shadow-sm border border-slate-200/40'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <span>{lvl.icon}</span>
+                  <span>{lvl.label}</span>
+                  <span className="px-1 py-0.2 bg-slate-200 text-[9px] text-slate-600 rounded-full font-mono">
+                    {lvl.key === 'All' 
+                      ? goals.length 
+                      : goals.filter(g => (g as any).level === lvl.key).length}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+              <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Active Appraisal Goals</h2>
               
               {visibleGoals.length === 0 ? (
                 <div className="text-center py-12 text-slate-400">
@@ -519,61 +658,140 @@ export default function PerformanceAppraisal({ currentUser, selectedTenantId }: 
                   <p className="text-xs">No goals matched the search or view context.</p>
                 </div>
               ) : (
-                <div className="divide-y divide-slate-100">
-                  {visibleGoals.map((g) => {
+                <div className="space-y-4 divide-y divide-slate-100/60">
+                  {visibleGoals.map((g, index) => {
                     const emp = employees.find(e => e.employeeId === g.employeeId);
+                    const lvl = (g as any).level || 'Employee';
+                    const progressVal = Number((g as any).progress) || 0;
+                    
+                    // Retrieve parent goal details for alignment mapping tracing
+                    const parentGoal = g.parentGoalId ? goals.find(pg => pg.goalId === g.parentGoalId) : null;
+
                     return (
-                      <div key={g.goalId} className="py-4 first:pt-0 last:pb-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-slate-900">{g.title}</span>
-                            <span className="bg-slate-100 text-[10px] font-mono font-medium px-2 py-0.5 rounded text-slate-600 border border-slate-200">
-                              Weight: {g.weight}%
-                            </span>
-                          </div>
-                          <p className="text-xs text-slate-500 max-w-lg">{g.description}</p>
-                          <p className="text-[10px] text-slate-400">
-                            Employee: <span className="font-semibold text-slate-600">{emp ? `${emp.firstName} ${emp.lastName}` : 'Unassigned'}</span>
-                          </p>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                            g.status === 'Achieved' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
-                            g.status === 'In_Progress' ? 'bg-blue-50 text-blue-700 border-blue-100' :
-                            g.status === 'Missed' ? 'bg-rose-50 text-rose-700 border-rose-100' :
-                            'bg-slate-50 text-slate-600 border-slate-100'
-                          }`}>
-                            {g.status.replace('_', ' ')}
-                          </span>
-
-                          {/* Quick Actions (Manager & Admin only) */}
-                          {!isEmployeeOnly && (
-                            <div className="flex items-center gap-1 border-l border-slate-100 pl-2">
-                              <button
-                                onClick={() => handleUpdateGoalStatus(g.goalId, 'Achieved')}
-                                title="Mark Achieved"
-                                className="p-1 hover:bg-emerald-50 rounded text-emerald-600"
-                              >
-                                <CheckCircle className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => handleUpdateGoalStatus(g.goalId, 'Missed')}
-                                title="Mark Missed"
-                                className="p-1 hover:bg-rose-50 rounded text-rose-600"
-                              >
-                                <XCircle className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => handleDeleteGoal(g.goalId)}
-                                title="Delete Goal"
-                                className="p-1 hover:bg-slate-100 rounded text-slate-500"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
+                      <div key={g.goalId} className={`pt-4 first:pt-0 space-y-3`}>
+                        
+                        {/* Title and Level Badge */}
+                        <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
+                          <div className="space-y-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="text-xs font-bold text-slate-900">{g.title}</span>
+                              <span className="bg-slate-100 text-[10px] font-mono font-medium px-2 py-0.5 rounded text-slate-600 border border-slate-200">
+                                Weight: {g.weight}%
+                              </span>
+                              
+                              {/* Hierarchy Level Badges */}
+                              {lvl === 'Organisation' && (
+                                <span className="bg-amber-50 text-amber-800 text-[10px] font-semibold px-2 py-0.5 rounded border border-amber-200 flex items-center gap-1">
+                                  🏢 Organisation Target
+                                </span>
+                              )}
+                              {lvl === 'Department' && (
+                                <span className="bg-purple-50 text-purple-800 text-[10px] font-semibold px-2 py-0.5 rounded border border-purple-200 flex items-center gap-1">
+                                  👥 Department Milestone
+                                </span>
+                              )}
+                              {lvl === 'Employee' && (
+                                <span className="bg-blue-50 text-blue-800 text-[10px] font-semibold px-2 py-0.5 rounded border border-blue-200 flex items-center gap-1">
+                                  👤 Individual Employee Goal
+                                </span>
+                              )}
                             </div>
-                          )}
+                            <p className="text-xs text-slate-500 max-w-xl">{g.description}</p>
+                          </div>
+
+                          {/* Level context label */}
+                          <div className="text-[10px] text-slate-400 shrink-0 text-right">
+                            {lvl === 'Organisation' && <span className="font-bold text-amber-700">Company-wide Goal</span>}
+                            {lvl === 'Department' && <span className="font-bold text-purple-700">Unit: {(g as any).departmentId === 'dept-eng' ? 'Engineering' : 'Operations'}</span>}
+                            {lvl === 'Employee' && <span>Owner: <strong className="text-slate-600">{emp ? `${emp.firstName} ${emp.lastName}` : 'Unassigned'}</strong></span>}
+                          </div>
                         </div>
+
+                        {/* Hierarchical Alignment Map Trace path */}
+                        {parentGoal && (
+                          <div className="p-2 bg-slate-50/80 border border-slate-200/40 rounded-lg text-[10px] text-slate-500 flex items-center gap-2 italic animate-fade-in">
+                            <span className="text-xs">🎯</span>
+                            <span>Mapped Hierarchy Alignment: </span>
+                            <span className="font-bold text-slate-700">“{parentGoal.title}”</span>
+                            <span className="text-slate-400">({(parentGoal as any).level})</span>
+                          </div>
+                        )}
+
+                        {/* Interactive Progress Tracking Slider & Controls */}
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-50/50 p-2.5 rounded-xl border border-slate-100">
+                          <div className="flex-1 space-y-1">
+                            <div className="flex justify-between items-center text-[10px] text-slate-500 font-mono">
+                              <span>Strategic Progress</span>
+                              <span className="font-bold text-slate-800">{progressVal}%</span>
+                            </div>
+                            <div className="w-full bg-slate-150 h-2 rounded-full overflow-hidden relative">
+                              <div 
+                                className="h-full bg-emerald-500 rounded-full transition-all duration-300"
+                                style={{ width: `${progressVal}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Live Adjusters */}
+                          <div className="flex items-center gap-1.5 justify-end shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateGoalProgress(g.goalId, progressVal - 10)}
+                              className="px-2 py-1 text-[10px] border border-slate-200 hover:bg-slate-100 text-slate-600 rounded font-bold cursor-pointer"
+                            >
+                              -10%
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateGoalProgress(g.goalId, progressVal + 10)}
+                              className="px-2 py-1 text-[10px] border border-slate-200 hover:bg-slate-100 text-slate-600 rounded font-bold cursor-pointer"
+                            >
+                              +10%
+                            </button>
+
+                            <span className="text-slate-300 mx-1">|</span>
+
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                              g.status === 'Achieved' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
+                              g.status === 'In_Progress' ? 'bg-blue-50 text-blue-700 border-blue-100' :
+                              g.status === 'Missed' ? 'bg-rose-50 text-rose-700 border-rose-100' :
+                              'bg-slate-50 text-slate-600 border-slate-100'
+                            }`}>
+                              {g.status.replace('_', ' ')}
+                            </span>
+
+                            {/* Quick Actions (Manager & Admin only) */}
+                            {!isEmployeeOnly && (
+                              <div className="flex items-center gap-1 border-l border-slate-150 pl-2 ml-1">
+                                <button
+                                  type="button"
+                                  onClick={() => handleUpdateGoalStatus(g.goalId, 'Achieved')}
+                                  title="Mark Achieved"
+                                  className="p-1 hover:bg-emerald-50 rounded text-emerald-600 cursor-pointer"
+                                >
+                                  <CheckCircle className="w-4 h-4" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleUpdateGoalStatus(g.goalId, 'Missed')}
+                                  title="Mark Missed"
+                                  className="p-1 hover:bg-rose-50 rounded text-rose-600 cursor-pointer"
+                                >
+                                  <XCircle className="w-4 h-4" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteGoal(g.goalId)}
+                                  title="Delete Goal"
+                                  className="p-1 hover:bg-slate-100 rounded text-slate-500 cursor-pointer"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
                       </div>
                     );
                   })}

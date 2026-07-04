@@ -729,6 +729,9 @@ export async function seedDatabaseIfNeeded() {
       await setDoc(doc(db, `companies/${DEMO_COMPANY_2_ID}/employees`, emp.employeeId), emp);
     }
 
+    // Write completion document as the last action to secure the database rules
+    await setDoc(doc(db, 'companies', 'seeding_complete'), { completed: true, timestamp: new Date().toISOString() });
+
     console.log('PeopleCloud HRIS auto-seeding completed successfully.');
   } catch (error) {
     console.error('Error during auto-seeding database:', error);

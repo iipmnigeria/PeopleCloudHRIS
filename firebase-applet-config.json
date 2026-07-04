@@ -1,9 +1,10 @@
 {
-  "projectId": "peoplecloudhris",
-  "appId": "1:351788833027:web:27b7ef0793e7b82a3d7136",
-  "apiKey": "AIzaSyBQ-ud8fXVaEM45A0skuHpyn017d3Xdr1o",
-  "authDomain": "peoplecloudhris.firebaseapp.com",
-  "storageBucket": "peoplecloudhris.firebasestorage.app",
-  "messagingSenderId": "351788833027",
-  "measurementId": "G-EV1V35YD6J"
+  "projectId": "gen-lang-client-0582357449",
+  "appId": "1:256099964763:web:33ca02ca7a4f067801ec7e",
+  "apiKey": "AIzaSyBkeXGvRmPUFu7qQmZ1InnmQN5eJeizTxM",
+  "authDomain": "gen-lang-client-0582357449.firebaseapp.com",
+  "firestoreDatabaseId": "ai-studio-peoplecloudhris-7a572952-0472-493e-8a2d-181bc8abda91",
+  "storageBucket": "gen-lang-client-0582357449.firebasestorage.app",
+  "messagingSenderId": "256099964763",
+  "measurementId": ""
 }

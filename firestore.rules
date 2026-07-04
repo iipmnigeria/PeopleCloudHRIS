@@ -9,7 +9,7 @@ service cloud.firestore {
 
     // Helper to check if database is empty / not seeded yet
     function isNotSeeded() {
-      return !exists(/databases/$(database)/documents/companies/acme-corp);
+      return !exists(/databases/$(database)/documents/companies/seeding_complete);
     }
 
     // Helper to check if user is SuperAdmin

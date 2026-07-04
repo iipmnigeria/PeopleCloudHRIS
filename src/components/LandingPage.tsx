@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ArrowRight, 
   Shield, 
@@ -29,6 +29,7 @@ import {
   Database
 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { checkIsNigeriaSync, detectIsNigeria } from '../currency';
 
 interface LandingPageProps {
   onGetStarted: (planName?: string) => void;
@@ -39,6 +40,15 @@ interface LandingPageProps {
 
 export default function LandingPage({ onGetStarted, onLoginClick, isLoggedIn, onGoToDashboard }: LandingPageProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [currency, setCurrency] = useState<'NGN' | 'USD'>(() => checkIsNigeriaSync() ? 'NGN' : 'USD');
+
+  useEffect(() => {
+    async function initCurrency() {
+      const isNG = await detectIsNigeria();
+      setCurrency(isNG ? 'NGN' : 'USD');
+    }
+    initCurrency();
+  }, []);
   
   // Interactive Seat Calculator state
   const [employeeSeats, setEmployeeSeats] = useState(25);
@@ -71,13 +81,17 @@ export default function LandingPage({ onGetStarted, onLoginClick, isLoggedIn, on
       limitText = 'Unlimited Employees';
     }
 
-    const totalCost = basePrice + extraSeatPrice;
+    const totalCostUSD = basePrice + extraSeatPrice;
+    // For Nigerian users, convert to Naira using the approximate conversion factor
+    const totalCost = currency === 'NGN' ? totalCostUSD * 1500 : totalCostUSD;
 
     return {
       plan,
       totalCost,
       limitText,
-      saveText: billingPeriod === 'annually' ? 'Saved 20% with Annual' : 'Switch to Annual for 20% off'
+      saveText: billingPeriod === 'annually' 
+        ? (currency === 'NGN' ? 'Saved 20% with Annual Billing' : 'Saved 20% with Annual') 
+        : (currency === 'NGN' ? 'Switch to Annual for 20% off' : 'Switch to Annual for 20% off')
     };
   };
 
@@ -598,7 +612,7 @@ export default function LandingPage({ onGetStarted, onLoginClick, isLoggedIn, on
 
                 <div className="py-4 border-y border-slate-800">
                   <div className="flex items-baseline gap-2">
-                    <span className="text-4xl font-extrabold">${calculatorInfo.totalCost}</span>
+                    <span className="text-4xl font-extrabold">{currency === 'NGN' ? '₦' : '$'}{calculatorInfo.totalCost.toLocaleString()}</span>
                     <span className="text-xs text-slate-400">/ {billingPeriod === 'annually' ? 'year' : 'month'}</span>
                   </div>
                   <p className="text-[10px] text-indigo-300 font-bold mt-1.5 flex items-center gap-1">
@@ -652,50 +666,53 @@ export default function LandingPage({ onGetStarted, onLoginClick, isLoggedIn, on
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
-            {planTiers.map((p, idx) => (
-              <div 
-                key={idx} 
-                className={`p-8 rounded-3xl border text-left flex flex-col justify-between relative transition-all ${p.popular ? 'border-indigo-500 shadow-xl shadow-indigo-100/40 bg-white ring-1 ring-indigo-500 scale-102 z-10' : 'border-slate-200 bg-slate-50/50'}`}
-              >
-                {p.popular && (
-                  <div className="absolute top-0 right-1/2 translate-x-1/2 -translate-y-1/2 bg-indigo-600 text-white font-extrabold text-[10px] tracking-widest uppercase px-3 py-1 rounded-full shadow-md shadow-indigo-200">
-                    Most Popular
-                  </div>
-                )}
-
-                <div className="space-y-6">
-                  <div>
-                    <h4 className="text-lg font-extrabold text-slate-900 font-display">{p.name}</h4>
-                    <p className="text-slate-500 text-[11px] mt-1 leading-relaxed min-h-[32px]">{p.description}</p>
-                  </div>
-
-                  <div className="py-4 border-y border-slate-100">
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-4xl font-extrabold text-slate-900">${p.price}</span>
-                      <span className="text-xs text-slate-500">/ {p.period}</span>
-                    </div>
-                    <span className="text-[10px] text-slate-400 block mt-1 font-medium">Billed {billingPeriod === 'annually' ? 'annually' : 'monthly'}</span>
-                  </div>
-
-                  <ul className="space-y-3 text-[11px] text-slate-600">
-                    {p.features.map((feat, fIdx) => (
-                      <li key={fIdx} className="flex items-start gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                        <span>{feat}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <button
-                  onClick={() => onGetStarted(p.name)}
-                  className={`mt-8 w-full py-3 font-bold text-xs rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1 ${p.popular ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-100' : 'bg-white border border-slate-200 hover:bg-slate-50 text-slate-700'}`}
+            {planTiers.map((p, idx) => {
+              const displayPrice = currency === 'NGN' ? p.price * 1500 : p.price;
+              return (
+                <div 
+                  key={idx} 
+                  className={`p-8 rounded-3xl border text-left flex flex-col justify-between relative transition-all ${p.popular ? 'border-indigo-500 shadow-xl shadow-indigo-100/40 bg-white ring-1 ring-indigo-500 scale-102 z-10' : 'border-slate-200 bg-slate-50/50'}`}
                 >
-                  <span>Select {p.name}</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            ))}
+                  {p.popular && (
+                    <div className="absolute top-0 right-1/2 translate-x-1/2 -translate-y-1/2 bg-indigo-600 text-white font-extrabold text-[10px] tracking-widest uppercase px-3 py-1 rounded-full shadow-md shadow-indigo-200">
+                      Most Popular
+                    </div>
+                  )}
+
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="text-lg font-extrabold text-slate-900 font-display">{p.name}</h4>
+                      <p className="text-slate-500 text-[11px] mt-1 leading-relaxed min-h-[32px]">{p.description}</p>
+                    </div>
+
+                    <div className="py-4 border-y border-slate-100">
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-4xl font-extrabold text-slate-900">{currency === 'NGN' ? '₦' : '$'}{displayPrice.toLocaleString()}</span>
+                        <span className="text-xs text-slate-500">/ {p.period}</span>
+                      </div>
+                      <span className="text-[10px] text-slate-400 block mt-1 font-medium">Billed {billingPeriod === 'annually' ? 'annually' : 'monthly'} {currency === 'NGN' && '(NGN equivalent)'}</span>
+                    </div>
+
+                    <ul className="space-y-3 text-[11px] text-slate-600">
+                      {p.features.map((feat, fIdx) => (
+                        <li key={fIdx} className="flex items-start gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                          <span>{feat}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <button
+                    onClick={() => onGetStarted(p.name)}
+                    className={`mt-8 w-full py-3 font-bold text-xs rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1 ${p.popular ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-100' : 'bg-white border border-slate-200 hover:bg-slate-50 text-slate-700'}`}
+                  >
+                    <span>Select {p.name}</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              );
+            })}
           </div>
 
         </div>
