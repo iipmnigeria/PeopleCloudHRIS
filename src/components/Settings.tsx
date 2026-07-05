@@ -1,1 +1,3 @@
-export { default } from './SettingsGlobal';
+import SettingsSuite from './SettingsSuite';
+
+export default SettingsSuite;
