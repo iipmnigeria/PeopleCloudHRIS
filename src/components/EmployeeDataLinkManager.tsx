@@ -7,7 +7,7 @@ import { UserRole } from '../types';
 type Props = { currentUser: { uid: string; email: string; displayName: string; role: UserRole; companyId: string | null }; selectedTenantId: string };
 type LinkRow = { id: string; companyId?: string; title?: string; purpose?: string; status?: string; expiresAt?: string; employeeId?: string; employeeEmail?: string };
 type Submission = { id: string; companyId?: string; token?: string; purpose?: string; employeeId?: string; employeeEmail?: string; status?: string; submittedData?: any };
-function canManage(role: UserRole) { return ['SuperAdmin', 'CompanyAdmin', 'HRManager'].includes(role); }
+function canManage(role: UserRole | string) { return ['SuperAdmin', 'CompanyAdmin', 'HRManager', 'HR Manager', 'Human Resource Manager'].includes(String(role)); }
 function makeToken() { return `edl-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`; }
 
 export default function EmployeeDataLinkManager({ currentUser, selectedTenantId }: Props) {
