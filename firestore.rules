@@ -40,7 +40,7 @@ service cloud.firestore {
     }
 
     function canManageHR(companyId) {
-      return belongsToCompany(companyId) && hasAnyRole(['SuperAdmin', 'CompanyAdmin', 'HRManager']);
+      return belongsToCompany(companyId) && hasAnyRole(['SuperAdmin', 'CompanyAdmin', 'HRManager', 'HR Manager']);
     }
 
     function canManagePayroll(companyId) {
