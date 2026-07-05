@@ -1,1 +1,1 @@
-export { default } from './GlobalPayrollEngineConfigurable';
+export { default } from './GlobalPayrollWorkspace';
