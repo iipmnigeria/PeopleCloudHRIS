@@ -12,6 +12,7 @@ import LeaveManagement from './components/LeaveManagement';
 import AttendanceTracking from './components/AttendanceTracking';
 import TruePayrollEngine from './components/TruePayrollEngine';
 import StatutoryComplianceCenter from './components/StatutoryComplianceCenter';
+import ComplianceEvidenceVault from './components/ComplianceEvidenceVault';
 import HrRequests from './components/HrRequests';
 import RecruitmentOnboarding from './components/RecruitmentOnboarding';
 import PerformanceAppraisal from './components/PerformanceAppraisal';
@@ -61,23 +62,9 @@ export default function App() {
 
         if (snap.exists()) {
           const profile = snap.data();
-          session = {
-            uid: user.uid,
-            email: user.email || '',
-            displayName: profile.displayName || user.displayName || 'PeopleCloud User',
-            role: (profile.role || 'Employee') as UserRole,
-            companyId: profile.companyId || null,
-          };
+          session = { uid: user.uid, email: user.email || '', displayName: profile.displayName || user.displayName || 'PeopleCloud User', role: (profile.role || 'Employee') as UserRole, companyId: profile.companyId || null };
         } else {
-          const profile = {
-            uid: user.uid,
-            email: user.email || '',
-            displayName: user.displayName || 'New Hire',
-            role: 'Employee' as UserRole,
-            companyId: 'acme-corp',
-            active: true,
-            createdAt: new Date().toISOString(),
-          };
+          const profile = { uid: user.uid, email: user.email || '', displayName: user.displayName || 'New Hire', role: 'Employee' as UserRole, companyId: 'acme-corp', active: true, createdAt: new Date().toISOString() };
           await setDoc(profileRef, profile);
           session = profile;
         }
@@ -97,32 +84,23 @@ export default function App() {
 
   useEffect(() => {
     if (!currentUser) return;
-
     async function loadCompanies() {
       try {
         const snap = await getDocs(collection(db, 'companies'));
         const list: Array<{ id: string; name: string; plan: string }> = [];
-        snap.forEach((item) => {
-          const data = item.data();
-          list.push({ id: item.id, name: data.name || 'Unnamed Corp', plan: data.subscriptionPlan || 'Starter' });
-        });
+        snap.forEach((item) => { const data = item.data(); list.push({ id: item.id, name: data.name || 'Unnamed Corp', plan: data.subscriptionPlan || 'Starter' }); });
         setAllCompanies(list);
         if (currentUser.role === 'SuperAdmin' && list.length > 0 && !selectedTenantId) setSelectedTenantId(list[0].id);
       } catch (error) {
         console.error('Error fetching companies directory:', error);
       }
     }
-
     loadCompanies();
   }, [currentUser, selectedTenantId]);
 
   useEffect(() => {
     const companyId = currentUser?.companyId || selectedTenantId;
-    if (!companyId) {
-      setCurrentCompanyName('SaaS Root Console');
-      return;
-    }
-
+    if (!companyId) { setCurrentCompanyName('SaaS Root Console'); return; }
     async function loadCompanyName() {
       try {
         const snap = await getDoc(doc(db, 'companies', companyId));
@@ -132,46 +110,20 @@ export default function App() {
         setCurrentCompanyName('Demo Enterprise');
       }
     }
-
     loadCompanyName();
   }, [currentUser, selectedTenantId]);
 
-  const handleAuthSuccess = (session: UserSession) => {
-    setCurrentUser(session);
-    if (session.companyId) setSelectedTenantId(session.companyId);
-    setActiveTab('dashboard');
-    setViewMode('app');
-  };
+  const handleAuthSuccess = (session: UserSession) => { setCurrentUser(session); if (session.companyId) setSelectedTenantId(session.companyId); setActiveTab('dashboard'); setViewMode('app'); };
+  const handleLogout = async () => { await signOut(auth); setCurrentUser(null); setSelectedTenantId(''); setAllCompanies([]); setViewMode('landing'); setInitialPlan(undefined); };
 
-  const handleLogout = async () => {
-    await signOut(auth);
-    setCurrentUser(null);
-    setSelectedTenantId('');
-    setAllCompanies([]);
-    setViewMode('landing');
-    setInitialPlan(undefined);
-  };
-
-  if (loading) {
-    return <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center space-y-4"><Loader2 className="w-8 h-8 text-brand-600 animate-spin" /><div className="text-center"><p className="text-xs font-bold text-slate-800 uppercase tracking-widest">PeopleCloud HRIS</p><p className="text-[10px] text-slate-400 mt-1">Acquiring cloud metadata context...</p></div></div>;
-  }
-
-  if (viewMode === 'landing') {
-    return <LandingPage onGetStarted={(planName) => { setInitialPlan(planName); setViewMode('auth'); }} onLoginClick={() => { setInitialPlan(undefined); setViewMode('auth'); }} isLoggedIn={!!currentUser} onGoToDashboard={() => setViewMode('app')} />;
-  }
-
-  if (!currentUser && viewMode === 'auth') {
-    return <AuthPage onAuthSuccess={handleAuthSuccess} initialPlan={initialPlan} onBackToLanding={() => setViewMode('landing')} />;
-  }
-
-  if (!currentUser) {
-    return <LandingPage onGetStarted={(planName) => { setInitialPlan(planName); setViewMode('auth'); }} onLoginClick={() => { setInitialPlan(undefined); setViewMode('auth'); }} isLoggedIn={false} onGoToDashboard={() => setViewMode('app')} />;
-  }
+  if (loading) return <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center space-y-4"><Loader2 className="w-8 h-8 text-brand-600 animate-spin" /><div className="text-center"><p className="text-xs font-bold text-slate-800 uppercase tracking-widest">PeopleCloud HRIS</p><p className="text-[10px] text-slate-400 mt-1">Acquiring cloud metadata context...</p></div></div>;
+  if (viewMode === 'landing') return <LandingPage onGetStarted={(planName) => { setInitialPlan(planName); setViewMode('auth'); }} onLoginClick={() => { setInitialPlan(undefined); setViewMode('auth'); }} isLoggedIn={!!currentUser} onGoToDashboard={() => setViewMode('app')} />;
+  if (!currentUser && viewMode === 'auth') return <AuthPage onAuthSuccess={handleAuthSuccess} initialPlan={initialPlan} onBackToLanding={() => setViewMode('landing')} />;
+  if (!currentUser) return <LandingPage onGetStarted={(planName) => { setInitialPlan(planName); setViewMode('auth'); }} onLoginClick={() => { setInitialPlan(undefined); setViewMode('auth'); }} isLoggedIn={false} onGoToDashboard={() => setViewMode('app')} />;
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col lg:flex-row" id="app-workspace">
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} currentUser={currentUser} currentCompanyName={currentCompanyName} onLogout={handleLogout} allCompanies={allCompanies} selectedTenantId={selectedTenantId} setSelectedTenantId={setSelectedTenantId} onViewMarketing={() => setViewMode('landing')} />
-
       <main className="flex-1 p-4 sm:p-6 lg:p-8 max-h-screen overflow-y-auto">
         <div className="max-w-7xl mx-auto space-y-6">
           {activeTab === 'dashboard' && <Dashboard currentUser={currentUser} selectedTenantId={selectedTenantId} />}
@@ -183,6 +135,7 @@ export default function App() {
           {activeTab === 'remote-work' && <RemoteWorkEngine currentUser={currentUser} selectedTenantId={selectedTenantId} />}
           {activeTab === 'payroll' && <TruePayrollEngine currentUser={currentUser} selectedTenantId={selectedTenantId} />}
           {activeTab === 'statutory-compliance' && <StatutoryComplianceCenter currentUser={currentUser} selectedTenantId={selectedTenantId} />}
+          {activeTab === 'compliance-evidence' && <ComplianceEvidenceVault currentUser={currentUser} selectedTenantId={selectedTenantId} />}
           {activeTab === 'contractors' && <ContractorEngine currentUser={currentUser} selectedTenantId={selectedTenantId} />}
           {activeTab === 'recruitment' && <RecruitmentOnboarding currentUser={currentUser} selectedTenantId={selectedTenantId} />}
           {activeTab === 'talent-lifecycle' && <TalentLifecycleEngine currentUser={currentUser} selectedTenantId={selectedTenantId} />}
