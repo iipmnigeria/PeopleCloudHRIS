@@ -1,3 +1,1 @@
-import GlobalComplianceCenter from './GlobalComplianceCenter';
-
-export default GlobalComplianceCenter;
+export { default } from './GlobalComplianceWorkspace';
