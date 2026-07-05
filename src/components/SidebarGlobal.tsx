@@ -26,6 +26,7 @@ export default function SidebarGlobal({ activeTab, setActiveTab, currentUser, cu
     { id: 'remote-work', label: 'Remote Work Engine', icon: Globe, roles: ['CompanyAdmin', 'HRManager', 'LineManager', 'Employee', 'Auditor'] },
     { id: 'payroll', label: currentUser.role === 'Employee' ? 'My Payslips' : 'Global Payroll Engine', icon: CreditCard, roles: ['CompanyAdmin', 'HRManager', 'FinanceOfficer', 'Auditor', 'Employee'] },
     { id: 'statutory-compliance', label: 'Global Compliance Center', icon: Landmark, roles: ['SuperAdmin', 'CompanyAdmin', 'HRManager', 'FinanceOfficer', 'Auditor'] },
+    { id: 'compliance-evidence', label: 'Compliance Evidence Vault', icon: FileCheck2, roles: ['SuperAdmin', 'CompanyAdmin', 'HRManager', 'FinanceOfficer', 'Auditor'] },
     { id: 'contractors', label: 'Contractor Hub', icon: Briefcase, roles: ['CompanyAdmin', 'HRManager', 'FinanceOfficer', 'Auditor'] },
     { id: 'recruitment', label: 'Recruitment Hub', icon: Briefcase, roles: ['CompanyAdmin', 'HRManager', 'Recruiter'] },
     { id: 'talent-lifecycle', label: 'Talent Lifecycle', icon: Sparkles, roles: ['SuperAdmin', 'CompanyAdmin', 'HRManager', 'LineManager', 'Employee', 'Recruiter', 'Auditor'] },
