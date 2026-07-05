@@ -1,0 +1,29 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    match /companies/{companyId}/compliance_evidence/{recordId}/{fileName} {
+      allow create, update: if isAuthenticated()
+        && request.resource.size < 20 * 1024 * 1024
+        && request.resource.metadata.companyId == companyId
+        && request.resource.metadata.uploadedBy == request.auth.uid;
+
+      allow read: if isAuthenticated()
+        && resource.metadata.companyId == companyId;
+
+      allow delete: if isAuthenticated()
+        && resource.metadata.uploadedBy == request.auth.uid;
+    }
+
+    match /companies/{companyId}/{allPaths=**} {
+      allow read, write: if false;
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
