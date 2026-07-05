@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 import firebaseConfig from '../firebase-applet-config.json';
 
 // Initialize Firebase App
@@ -18,6 +19,9 @@ export const db = getFirestore(app, (firebaseConfig as any).firestoreDatabaseId 
 
 // Initialize Auth
 export const auth = getAuth(app);
+
+// Initialize Storage for secured documents and evidence vaults
+export const storage = getStorage(app);
 
 export enum OperationType {
   CREATE = 'create',
