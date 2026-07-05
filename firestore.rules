@@ -1,53 +1,211 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Helper to check if user is authenticated
+
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    // Helper to check if database is empty / not seeded yet
+    // Bootstrap support for the current demo seeder. Remove after production seeding/migration.
     function isNotSeeded() {
-      return !exists(/databases/$(database)/documents/companies/seeding_complete);
+      return !exists(/databases/$(database)/documents/companies/seeding_complete)
+        && !exists(/databases/$(database)/documents/companies/acme-corp);
     }
 
-    // Helper to check if user is SuperAdmin
+    function userExists() {
+      return isAuthenticated() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function userData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function userRole() {
+      return userExists() ? userData().role : null;
+    }
+
     function isSuperAdmin() {
-      return isAuthenticated() && 
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'SuperAdmin';
+      return userExists() && userRole() == 'SuperAdmin';
     }
 
-    // Helper to check if user belongs to the given company
+    function hasAnyRole(roles) {
+      return userExists() && userRole() in roles;
+    }
+
     function belongsToCompany(companyId) {
-      return isAuthenticated() && 
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId == companyId || 
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'SuperAdmin');
+      return userExists() && (userData().companyId == companyId || isSuperAdmin());
     }
 
-    // Email notification queue for Firebase Trigger Email extension.
-    // App users may create email requests, but email queue contents must not be exposed to the frontend.
+    function canManageCompany(companyId) {
+      return belongsToCompany(companyId) && hasAnyRole(['SuperAdmin', 'CompanyAdmin']);
+    }
+
+    function canManageHR(companyId) {
+      return belongsToCompany(companyId) && hasAnyRole(['SuperAdmin', 'CompanyAdmin', 'HRManager']);
+    }
+
+    function canManagePayroll(companyId) {
+      return belongsToCompany(companyId) && hasAnyRole(['SuperAdmin', 'CompanyAdmin', 'HRManager', 'FinanceOfficer']);
+    }
+
+    function canReadPayroll(companyId) {
+      return belongsToCompany(companyId) && hasAnyRole(['SuperAdmin', 'CompanyAdmin', 'HRManager', 'FinanceOfficer', 'Auditor']);
+    }
+
+    function canManageCompliance(companyId) {
+      return belongsToCompany(companyId) && hasAnyRole(['SuperAdmin', 'CompanyAdmin', 'HRManager', 'FinanceOfficer']);
+    }
+
+    function canReadCompliance(companyId) {
+      return belongsToCompany(companyId) && hasAnyRole(['SuperAdmin', 'CompanyAdmin', 'HRManager', 'FinanceOfficer', 'Auditor']);
+    }
+
+    function isLineManager(companyId) {
+      return belongsToCompany(companyId) && hasAnyRole(['LineManager']);
+    }
+
+    function isEmployeeSelf(companyId, employeeId) {
+      return belongsToCompany(companyId)
+        && exists(/databases/$(database)/documents/companies/$(companyId)/employees/$(employeeId))
+        && (
+          get(/databases/$(database)/documents/companies/$(companyId)/employees/$(employeeId)).data.userId == request.auth.uid
+          || get(/databases/$(database)/documents/companies/$(companyId)/employees/$(employeeId)).data.email == request.auth.token.email
+        );
+    }
+
+    function isSelfPayrollRecord() {
+      return isAuthenticated()
+        && (
+          resource.data.employeeEmail == request.auth.token.email
+          || (resource.data.employeeId is string && exists(/databases/$(database)/documents/companies/$(resource.data.companyId)/employees/$(resource.data.employeeId))
+              && get(/databases/$(database)/documents/companies/$(resource.data.companyId)/employees/$(resource.data.employeeId)).data.userId == request.auth.uid)
+        );
+    }
+
     match /mail/{mailId} {
       allow create: if isAuthenticated();
       allow read, update, delete: if false;
     }
 
-    // User profiles rules
     match /users/{userId} {
-      allow read: if isAuthenticated();
-      allow write: if (isAuthenticated() && (request.auth.uid == userId || isSuperAdmin())) || isNotSeeded();
+      allow create: if (isAuthenticated() && request.auth.uid == userId) || isNotSeeded();
+      allow get: if isAuthenticated() && (request.auth.uid == userId || isSuperAdmin() || (userExists() && resource.data.companyId == userData().companyId));
+      allow list: if isSuperAdmin();
+      allow update: if isAuthenticated() && (request.auth.uid == userId || isSuperAdmin());
+      allow delete: if isSuperAdmin();
     }
 
-    // Companies rules
     match /companies/{companyId} {
-      allow read: if isAuthenticated() || isNotSeeded();
-      allow write: if (isAuthenticated() && (belongsToCompany(companyId) || isSuperAdmin())) || isNotSeeded();
+      allow create: if isNotSeeded() || (userExists() && userData().companyId == companyId && hasAnyRole(['CompanyAdmin', 'SuperAdmin']));
+      allow get, list: if isNotSeeded() || belongsToCompany(companyId);
+      allow update: if canManageCompany(companyId);
+      allow delete: if isSuperAdmin();
 
-      // Nested subcollections rules (employees, departments, attendance, leave_requests, etc.)
+      match /employees/{employeeId} {
+        allow get, list: if belongsToCompany(companyId);
+        allow create: if canManageHR(companyId) || isNotSeeded();
+        allow update: if canManageHR(companyId)
+          || (isEmployeeSelf(companyId, employeeId)
+              && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['baseSalary', 'gradeLevel', 'employmentType', 'status', 'supervisorId', 'taxId']));
+        allow delete: if canManageHR(companyId);
+      }
+
+      match /departments/{departmentId} {
+        allow read: if belongsToCompany(companyId);
+        allow write: if canManageHR(companyId) || isNotSeeded();
+      }
+
+      match /attendance/{attendanceId} {
+        allow read: if belongsToCompany(companyId);
+        allow create: if canManageHR(companyId) || isEmployeeSelf(companyId, request.resource.data.employeeId) || isNotSeeded();
+        allow update: if canManageHR(companyId) || isLineManager(companyId) || isEmployeeSelf(companyId, resource.data.employeeId);
+        allow delete: if canManageHR(companyId);
+      }
+
+      match /leave_requests/{leaveRequestId} {
+        allow read: if belongsToCompany(companyId);
+        allow create: if canManageHR(companyId) || isEmployeeSelf(companyId, request.resource.data.employeeId) || isNotSeeded();
+        allow update: if canManageHR(companyId) || isLineManager(companyId);
+        allow delete: if canManageHR(companyId);
+      }
+
+      match /payroll_rule_profiles/{profileId} {
+        allow read: if canReadPayroll(companyId);
+        allow write: if canManagePayroll(companyId);
+      }
+
+      match /payroll_attendance_adjustments/{adjustmentId} {
+        allow read: if canReadPayroll(companyId);
+        allow write: if canManagePayroll(companyId);
+      }
+
+      match /payroll_runs/{runId} {
+        allow read: if canReadPayroll(companyId);
+        allow create, update: if canManagePayroll(companyId);
+        allow delete: if isSuperAdmin();
+      }
+
+      match /payroll/{payrollId} {
+        allow get, list: if canReadPayroll(companyId) || isSelfPayrollRecord();
+        allow create, update: if canManagePayroll(companyId);
+        allow delete: if isSuperAdmin();
+      }
+
+      match /salary_payment_batches/{batchId} {
+        allow read: if canReadPayroll(companyId);
+        allow write: if belongsToCompany(companyId) && hasAnyRole(['SuperAdmin', 'CompanyAdmin', 'FinanceOfficer']);
+      }
+
+      match /global_compliance/{recordId} {
+        allow read: if canReadCompliance(companyId);
+        allow create, update: if canManageCompliance(companyId);
+        allow delete: if isSuperAdmin();
+      }
+
+      match /compliance_evidence/{evidenceId} {
+        allow read: if canReadCompliance(companyId);
+        allow create, update: if canManageCompliance(companyId);
+        allow delete: if isSuperAdmin();
+      }
+
+      match /audit_logs/{logId} {
+        allow read: if belongsToCompany(companyId) && hasAnyRole(['SuperAdmin', 'CompanyAdmin', 'HRManager', 'Auditor']);
+        allow create: if belongsToCompany(companyId);
+        allow update, delete: if false;
+      }
+
+      match /notifications/{notificationId} {
+        allow read: if belongsToCompany(companyId) && (resource.data.userId == request.auth.uid || canManageHR(companyId));
+        allow create: if belongsToCompany(companyId);
+        allow update: if belongsToCompany(companyId) && (resource.data.userId == request.auth.uid || canManageHR(companyId));
+        allow delete: if canManageHR(companyId);
+      }
+
+      match /jobs/{jobId} {
+        allow read: if belongsToCompany(companyId);
+        allow write: if belongsToCompany(companyId) && hasAnyRole(['SuperAdmin', 'CompanyAdmin', 'HRManager', 'Recruiter']);
+      }
+
+      match /candidates/{candidateId} {
+        allow read: if belongsToCompany(companyId) && hasAnyRole(['SuperAdmin', 'CompanyAdmin', 'HRManager', 'Recruiter', 'Auditor']);
+        allow write: if belongsToCompany(companyId) && hasAnyRole(['SuperAdmin', 'CompanyAdmin', 'HRManager', 'Recruiter']);
+      }
+
+      match /documents/{documentId} {
+        allow read: if belongsToCompany(companyId) && (canManageHR(companyId) || resource.data.accessLevel == 'EmployeeSelf');
+        allow write: if canManageHR(companyId);
+      }
+
+      match /hr_requests/{requestId} {
+        allow read: if belongsToCompany(companyId);
+        allow create: if belongsToCompany(companyId);
+        allow update: if canManageHR(companyId) || isLineManager(companyId);
+        allow delete: if canManageHR(companyId);
+      }
+
+      // Non-sensitive operational modules remain tenant-isolated while sensitive payroll/compliance data is restricted above.
       match /{document=**} {
-        allow read, write: if (isAuthenticated() && belongsToCompany(companyId)) || isNotSeeded();
+        allow read, write: if belongsToCompany(companyId) || isNotSeeded();
       }
     }
   }
