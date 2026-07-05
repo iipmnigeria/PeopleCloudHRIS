@@ -95,7 +95,15 @@ export default function ComplianceEvidenceVault({ currentUser, selectedTenantId 
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
       const path = `companies/${companyId}/compliance_evidence/${selectedRecord.id}/${Date.now()}-${safeName}`;
       const storageRef = ref(storage, path);
-      await uploadBytes(storageRef, file, { contentType: file.type || 'application/octet-stream' });
+      await uploadBytes(storageRef, file, {
+        contentType: file.type || 'application/octet-stream',
+        customMetadata: {
+          companyId,
+          complianceRecordId: selectedRecord.id,
+          uploadedBy: currentUser.uid,
+          evidenceType,
+        },
+      });
       const url = await getDownloadURL(storageRef);
       const logData = {
         companyId,
