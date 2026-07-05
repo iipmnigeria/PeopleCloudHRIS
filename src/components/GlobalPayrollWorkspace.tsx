@@ -5,7 +5,11 @@ import PayrollApprovalWorkflow from './PayrollApprovalWorkflow';
 import PayslipPortal from './PayslipPortal';
 
 export default function GlobalPayrollWorkspace(props: any) {
-  const [tab, setTab] = useState<'engine' | 'approval' | 'payslips'>('engine');
+  const isEmployee = props?.currentUser?.role === 'Employee';
+  const [tab, setTab] = useState<'engine' | 'approval' | 'payslips'>(isEmployee ? 'payslips' : 'engine');
+
+  if (isEmployee) return <PayslipPortal {...props} />;
+
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-2xl border border-slate-200 p-2 flex flex-wrap gap-2">
