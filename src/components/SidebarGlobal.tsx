@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { UserRole } from '../types';
-import { Activity, Award, Briefcase, CalendarDays, Clock, Compass, Contact, CreditCard, FileCheck2, Globe, GraduationCap, HelpCircle, LayoutDashboard, Landmark, LogOut, Menu, MessageSquare, Settings, Sparkles, Users, X } from 'lucide-react';
+import { Activity, Award, Briefcase, CalendarDays, Clock, Compass, Contact, CreditCard, FileCheck2, Globe, GraduationCap, HelpCircle, LayoutDashboard, Landmark, LogOut, Megaphone, Menu, MessageSquare, Settings, Sparkles, Users, X } from 'lucide-react';
 
 type SidebarProps = {
   activeTab: string;
@@ -34,6 +34,7 @@ export default function SidebarGlobal({ activeTab, setActiveTab, currentUser, cu
     { id: 'appraisals', label: 'Performance Appraisals', icon: Award, roles: ['CompanyAdmin', 'HRManager', 'LineManager', 'Employee'] },
     { id: 'training', label: 'Training & L&D', icon: GraduationCap, roles: ['CompanyAdmin', 'HRManager', 'LineManager', 'Employee'] },
     { id: 'requests', label: 'HR Helpdesk', icon: HelpCircle, roles: ['CompanyAdmin', 'HRManager', 'LineManager', 'Employee'] },
+    { id: 'experience', label: 'Experience & Communication', icon: Megaphone, roles: ['SuperAdmin', 'CompanyAdmin', 'HRManager', 'LineManager', 'Employee', 'FinanceOfficer', 'Recruiter', 'Auditor'] },
     { id: 'google-chat', label: 'Smart Workforce Hub', icon: MessageSquare, roles: ['SuperAdmin', 'CompanyAdmin', 'HRManager', 'LineManager', 'Employee', 'FinanceOfficer', 'Recruiter', 'Auditor'] },
     { id: 'audit-logs', label: 'Audit Logs', icon: FileCheck2, roles: ['SuperAdmin', 'CompanyAdmin', 'HRManager', 'Auditor'] },
     { id: 'settings', label: 'SaaS Settings', icon: Settings, roles: ['SuperAdmin', 'CompanyAdmin'] },
