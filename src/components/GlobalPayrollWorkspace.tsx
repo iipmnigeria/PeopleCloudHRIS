@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Calculator, CalendarCheck2, FileText, ShieldCheck } from 'lucide-react';
-import GlobalPayrollEngineConfigurable from './GlobalPayrollEngineConfigurable';
+import GlobalPayrollEngineIntegrated from './GlobalPayrollEngineIntegrated';
 import PayrollApprovalWorkflow from './PayrollApprovalWorkflow';
 import PayslipPortal from './PayslipPortal';
 import PayrollAttendanceIntegration from './PayrollAttendanceIntegration';
@@ -19,7 +19,7 @@ export default function GlobalPayrollWorkspace(props: any) {
         <button onClick={() => setTab('approval')} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold ${tab === 'approval' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'}`}><ShieldCheck className="w-4 h-4" />Approval Workflow</button>
         <button onClick={() => setTab('payslips')} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold ${tab === 'payslips' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'}`}><FileText className="w-4 h-4" />Payslip Portal</button>
       </div>
-      {tab === 'engine' && <GlobalPayrollEngineConfigurable {...props} />}
+      {tab === 'engine' && <GlobalPayrollEngineIntegrated {...props} />}
       {tab === 'attendance' && <PayrollAttendanceIntegration {...props} />}
       {tab === 'approval' && <PayrollApprovalWorkflow {...props} />}
       {tab === 'payslips' && <PayslipPortal {...props} />}
