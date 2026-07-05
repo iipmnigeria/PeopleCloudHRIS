@@ -95,8 +95,8 @@ service cloud.firestore {
     }
 
     match /employee_data_links/{token} {
-      allow get: if resource.data.status == 'Active';
-      allow list: if isSuperAdmin();
+      allow get: if resource.data.status == 'Active' || canManageHR(resource.data.companyId);
+      allow list: if canManageHR(resource.data.companyId);
       allow create: if canManageHR(request.resource.data.companyId);
       allow update, delete: if canManageHR(resource.data.companyId);
     }
