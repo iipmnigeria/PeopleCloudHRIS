@@ -6,7 +6,6 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Bootstrap support for the current demo seeder. Remove after production seeding/migration.
     function isNotSeeded() {
       return !exists(/databases/$(database)/documents/companies/seeding_complete)
         && !exists(/databases/$(database)/documents/companies/acme-corp);
@@ -93,6 +92,21 @@ service cloud.firestore {
       allow list: if isSuperAdmin();
       allow update: if isAuthenticated() && (request.auth.uid == userId || isSuperAdmin());
       allow delete: if isSuperAdmin();
+    }
+
+    match /employee_data_links/{token} {
+      allow get: if resource.data.status == 'Active';
+      allow list: if isSuperAdmin();
+      allow create: if canManageHR(request.resource.data.companyId);
+      allow update, delete: if canManageHR(resource.data.companyId);
+    }
+
+    match /employee_data_submissions/{submissionId} {
+      allow create: if request.resource.data.token is string
+        && exists(/databases/$(database)/documents/employee_data_links/$(request.resource.data.token))
+        && get(/databases/$(database)/documents/employee_data_links/$(request.resource.data.token)).data.status == 'Active'
+        && request.resource.data.companyId == get(/databases/$(database)/documents/employee_data_links/$(request.resource.data.token)).data.companyId;
+      allow read, update, delete: if canManageHR(resource.data.companyId);
     }
 
     match /companies/{companyId} {
@@ -203,7 +217,6 @@ service cloud.firestore {
         allow delete: if canManageHR(companyId);
       }
 
-      // Non-sensitive operational modules remain tenant-isolated while sensitive payroll/compliance data is restricted above.
       match /{document=**} {
         allow read, write: if belongsToCompany(companyId) || isNotSeeded();
       }
