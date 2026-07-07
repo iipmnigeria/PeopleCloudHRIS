@@ -31,7 +31,7 @@ export default function SidebarGlobal({ activeTab, setActiveTab, currentUser, cu
     { id: 'recruitment', label: 'Recruitment Hub', icon: Briefcase, roles: ['CompanyAdmin', 'HRManager', 'Recruiter'] },
     { id: 'talent-lifecycle', label: 'Talent Lifecycle', icon: Sparkles, roles: ['SuperAdmin', 'CompanyAdmin', 'HRManager', 'LineManager', 'Employee', 'Recruiter', 'Auditor'] },
     { id: 'onboarding', label: 'Employee Onboarding', icon: FileCheck2, roles: ['CompanyAdmin', 'HRManager', 'LineManager', 'Recruiter', 'Employee'] },
-    { id: 'appraisals', label: 'Performance Appraisals', icon: Award, roles: ['CompanyAdmin', 'HRManager', 'LineManager', 'Employee'] },
+    { id: 'appraisals', label: 'Performance Management', icon: Award, roles: ['CompanyAdmin', 'HRManager', 'LineManager', 'Employee'] },
     { id: 'training', label: 'Training & L&D', icon: GraduationCap, roles: ['CompanyAdmin', 'HRManager', 'LineManager', 'Employee'] },
     { id: 'requests', label: 'HR Helpdesk', icon: HelpCircle, roles: ['CompanyAdmin', 'HRManager', 'LineManager', 'Employee'] },
     { id: 'google-chat', label: 'Experience & Workforce Hub', icon: Megaphone, roles: ['SuperAdmin', 'CompanyAdmin', 'HRManager', 'LineManager', 'Employee', 'FinanceOfficer', 'Recruiter', 'Auditor'] },
