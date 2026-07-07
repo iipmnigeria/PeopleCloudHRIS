@@ -2,6 +2,7 @@ import React from 'react';
 import SmartWorkforceHub from './SmartWorkforceHub';
 import OfflineModeIndicator from './OfflineModeIndicator';
 import EmployeeExperienceSuite from './EmployeeExperienceSuite';
+import AnniversaryCelebrationManager from './AnniversaryCelebrationManager';
 import { UserRole } from '../types';
 
 interface GoogleChatProps {
@@ -19,6 +20,7 @@ export default function GoogleChat(props: GoogleChatProps) {
   return (
     <div className="space-y-8">
       <EmployeeExperienceSuite {...props} />
+      <AnniversaryCelebrationManager {...props} />
       <SmartWorkforceHub {...props} />
       <OfflineModeIndicator />
     </div>
